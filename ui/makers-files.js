@@ -55,10 +55,11 @@ export async function writeFiles(requests, { folders, files }) {
     let expect = null;
     if (entry !== undefined) {
       const current = await requests.request({ operation: "read", path: file.path });
-      if (current.text === file.text && current.bom === false) continue;
+      // The sidecar reports no mode, so an executable file is written again even when its text is current; that write sets 0755.
+      if (current.text === file.text && current.bom === false && file.executable !== true) continue;
       expect = current.version;
     }
-    await requests.request({ operation: "write", path: file.path, text: file.text, expect, bom: false });
+    await requests.request({ operation: "write", path: file.path, text: file.text, expect, bom: false, executable: file.executable === true });
     written.push(file.path);
   }
   return written;

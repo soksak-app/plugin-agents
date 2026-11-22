@@ -65,3 +65,22 @@ test("writeFiles refuses a listed path whose name is a folder in the project, an
   sidecar.folders.add(".moai/agents/backend.md");
   await assert.rejects(writeFiles(requests, PLAN), /backend\.md is a folder/);
 });
+
+test("writeFiles sends the executable member of each entry with write, false when the entry has none", async () => {
+  const sidecar = fakeSidecar();
+  await writeFiles(connect(sidecar), { folders: PLAN.folders, files: [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable: true }, { path: ".moai/skills/plan.md", text: "plan\n" }] });
+  assert.deepEqual(sidecar.log.filter((body) => body.operation === "write").map((body) => body.executable), [true, false]);
+});
+
+test("writeFiles writes an executable file again when its text is current, so the sidecar sets its mode to 0755", async () => {
+  const sidecar = fakeSidecar();
+  const requests = connect(sidecar);
+  await writeFiles(requests, PLAN);
+  assert.equal(sidecar.modes.get(".moai/agents/backend.md"), "0644");
+  const executable = { folders: PLAN.folders, files: [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable: true }] };
+  assert.deepEqual(await writeFiles(requests, executable), [".moai/agents/backend.md"]);
+  assert.equal(sidecar.modes.get(".moai/agents/backend.md"), "0755");
+  assert.equal(sidecar.files.get(".moai/agents/backend.md"), "# Backend\n");
+  assert.deepEqual(await writeFiles(requests, executable), [".moai/agents/backend.md"]);
+  assert.equal(sidecar.modes.get(".moai/agents/backend.md"), "0755");
+});

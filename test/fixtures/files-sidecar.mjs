@@ -10,6 +10,7 @@ export function fakeSidecar() {
   const folders = new Set([""]);
   const files = new Map();
   const log = [];
+  const modes = new Map();
   const answer = (body) => {
     log.push(body);
     const { operation, path, id } = body;
@@ -40,12 +41,16 @@ export function fakeSidecar() {
     if (operation === "write") {
       if (files.has(path) && body.expect !== digest(files.get(path))) return { id, error: `changed on disk: ${path}` };
       if (!files.has(path) && body.expect !== null) return { id, error: `write expects a version for a new file: ${path}` };
+      if (body.executable !== undefined && typeof body.executable !== "boolean") return { id, error: "write executable must be a boolean" };
+      // The sidecar sets 0755 for an executable write and keeps the mode of an existing file; a new file gets 0644 here, a stand-in for 0666 under the umask.
+      if (body.executable === true) modes.set(path, "0755");
+      else if (!files.has(path)) modes.set(path, "0644");
       files.set(path, body.text);
       return { id, version: digest(body.text) };
     }
     return { id, error: `unknown operation ${operation}` };
   };
-  return { answer, files, folders, log };
+  return { answer, files, folders, log, modes };
 }
 
 // Connects createRequests to the fake: each request is answered and its reply is paired with it, as the sidecar replies.

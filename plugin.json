@@ -32,7 +32,7 @@
     }
   ],
   "dependencies": {
-    "@soksak/sidecar-files": ">=0.0.12"
+    "@soksak/sidecar-files": ">=0.0.13"
   },
   "settings": {
     "terminalPlugin": {

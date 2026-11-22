@@ -131,8 +131,8 @@ test("plugin.json declares the commands agents.account.define and agents.account
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the sidecar of the files that the import writes, at the version that has createFolder", () => {
-  assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.12" });
+test("plugin.json declares the sidecar of the files that the import writes, at the version that reads the executable member of write", () => {
+  assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.13" });
 });
 
 test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select, agents.session.start and agents.session.show with their parameters and results", () => {

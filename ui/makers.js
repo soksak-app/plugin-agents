@@ -58,6 +58,7 @@ export function parseMakerGroup(group, itemId) {
     if (file === null || typeof file !== "object" || typeof file.text !== "string") throw new Error(`group ${group.id} file entry must have text`);
     checkRelativePath(file.path, `file ${file.path}`);
     if (!group.folders.some((folder) => file.path.startsWith(folder))) throw new Error(`file ${file.path} is not inside a folder of folders`);
+    if (file.executable !== undefined && typeof file.executable !== "boolean") throw new Error(`file ${file.path} executable must be a boolean`);
     if (paths.has(file.path)) throw new Error(`file ${file.path} repeats`);
     paths.add(file.path);
   }
@@ -120,5 +121,5 @@ export function importPlan({ group, groups, definitions, accounts, plugin, cwd }
     ko: `${agent.path} 파일의 정의를 따른다.`,
     files: [agent.path],
   }));
-  return { folders: [...group.folders], files: group.files.map((file) => ({ path: file.path, text: file.text })), accounts: created, definitions: nextDefinitions, groups: nextGroups, roles };
+  return { folders: [...group.folders], files: group.files.map((file) => ({ path: file.path, text: file.text, executable: file.executable === true })), accounts: created, definitions: nextDefinitions, groups: nextGroups, roles };
 }

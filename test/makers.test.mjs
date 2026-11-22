@@ -51,6 +51,25 @@ test("parseMakerGroup refuses a files path outside the folders, an unsafe path, 
   assert.throws(() => parseMakerGroup(group({ agents: [{ name: "X", path: ".moai/missing.md", cli: "claude" }] }), "moai"), /agent X path .moai\/missing\.md is not a path of files/);
 });
 
+test("parseMakerGroup accepts an executable member that is a boolean and refuses any other value", () => {
+  const backend = (executable) => [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable }];
+  assert.equal(parseMakerGroup(group({ files: backend(true) }), "moai").files[0].executable, true);
+  for (const value of ["yes", 1, null]) {
+    assert.throws(() => parseMakerGroup(group({ files: backend(value) }), "moai"), /file \.moai\/agents\/backend\.md executable must be a boolean/);
+  }
+});
+
+test("importPlan passes the executable member of each file, false when the entry has none", () => {
+  const plan = importPlan({
+    group: group({ files: [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable: true }, { path: ".moai/skills/plan/SKILL.md", text: "plan\n" }] }),
+    groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project",
+  });
+  assert.deepEqual(plan.files, [
+    { path: ".moai/agents/backend.md", text: "# Backend\n", executable: true },
+    { path: ".moai/skills/plan/SKILL.md", text: "plan\n", executable: false },
+  ]);
+});
+
 test("importPlan writes each folder and file, creates the account of the agent cli and defines the agent with its file", () => {
   const plan = importPlan({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
   assert.deepEqual(plan.folders, [".moai/"]);
@@ -100,5 +119,5 @@ test("parseMakerGroup accepts a folder under .claude/ with its files, and the im
   });
   assert.equal(parseMakerGroup(claude, "moai").folders[0], ".claude/");
   const plan = importPlan({ group: claude, groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
-  assert.deepEqual(plan.files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n" }]);
+  assert.deepEqual(plan.files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n", executable: false }]);
 });
