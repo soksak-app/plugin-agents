@@ -23,7 +23,7 @@ The group object has these members. Required members must be present; optional m
 - `path` (required): folders that the agent process prepends to `PATH`.
 - `folders` (required): folders that the group creates in the project, each ending with `/`, such as `.moai/`, `.harness/` or `.superpowers/`.
 - `rules` (required): instruction lines that the room appends to the agent prompt, such as the location rules of the group's outputs. An empty list is allowed.
-- `files` (required): the files of the group as `{path, text}` entries, `path` a project path inside a folder of `folders` and `text` the corrected content of the file. The maker builds this list when it is packed, from its own corrected files. Each path is unique.
+- `files` (required): the files of the group as `{path, text, executable?}` entries, `path` a project path inside a folder of `folders`, `text` the corrected content of the file and `executable` (optional boolean, default `false`) whether the import sets the execute bit of the file. The maker builds this list when it is packed, from its own corrected files. Each path is unique. A non-boolean `executable` makes the group invalid, as the schema below states.
 
 The outputs of a group go only to the folders in `folders`. The rules of a group name these locations, for example `.superpowers/plans/` for plans.
 
@@ -33,7 +33,7 @@ The maker plugins that contribute groups are moai (`.moai/`, claude only, one po
 
 Importing a group writes the project, in this order, and refuses the whole import with the text of the rule when a check fails, before any write:
 
-1. Every `folders` entry is created with `createFolder` of the files sidecar, relative to the project root. Each `files` entry is written with `write` of the files sidecar after its parent folders exist; a `files` path outside `folders` is refused.
+1. Every `folders` entry is created with `createFolder` of the files sidecar, relative to the project root. Each `files` entry is written with `write` of the files sidecar after its parent folders exist; a `files` path outside `folders` is refused. The request carries `executable` with the value of the entry, `false` when the entry has none. A file whose current text equals the entry text is not written, except an executable entry: the sidecar reports no mode, so an executable entry is written again with the current version of the file, which sets the mode to 0755 and keeps the text. The plugin declares the files sidecar at `>=0.0.13` in `plugin.json` `dependencies`, the version that reads `executable`; an older sidecar would ignore the member and create the file without the execute bit.
 2. Each agent gets the definition identifier `<group id>-<slug>`. The slug is the agent `name` in lower case, with every run of characters outside `a-z` and `0-9` replaced by one `-`, the `-` at both ends removed, and the whole identifier cut to 64 characters. An empty slug, or an identifier that repeats within the group, refuses the import and names the agent.
 3. The account of an agent is the account whose `cli` equals the agent `cli`. When none exists, the import creates it as defined in [definitions](definitions.md#accounts-created-by-an-import).
 4. The definition of each agent takes the role file: `files` is the absolute path of the agent `path` entry of `files` in the project root (`core.role.define` takes absolute paths), and `text` and `ko` each name that file in one line. The definition `cwd` is the project root of the window. The import is the declared command `agents.group.import {group}`, which the view of the definitions section runs for each connected maker group.
@@ -72,7 +72,7 @@ Model and environment variables are not applied. The stored definition has no me
       "type": "array",
       "items": {
         "type": "object",
-        "properties": { "path": { "type": "string" }, "text": { "type": "string" } },
+        "properties": { "path": { "type": "string" }, "text": { "type": "string" }, "executable": { "type": "boolean" } },
         "required": ["path", "text"]
       }
     }

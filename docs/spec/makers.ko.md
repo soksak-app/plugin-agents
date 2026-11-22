@@ -23,7 +23,7 @@ Group object는 다음 member를 가진다. 필수 member는 반드시 있어야
 - `path`(필수): agent process가 `PATH` 앞에 붙이는 폴더 목록이다.
 - `folders`(필수): group이 프로젝트에 만드는 폴더 목록이며, 각각 `/`로 끝난다. 예를 들어 `.moai/`, `.harness/`, `.superpowers/`다.
 - `rules`(필수): room이 agent prompt에 덧붙이는 지시 줄 목록이다. group 산출물의 위치 규칙을 담는다. 빈 목록도 허용한다.
-- `files`(필수): group의 파일을 `{path, text}` 항목으로 준다. `path`는 `folders`의 폴더 안의 프로젝트 경로이고, `text`는 파일의 교정된 내용이다. Maker가 pack할 때 교정된 자기 파일로 이 목록을 만든다. 각 path는 유일하다.
+- `files`(필수): group의 파일을 `{path, text, executable?}` 항목으로 준다. `path`는 `folders`의 폴더 안의 프로젝트 경로이고, `text`는 파일의 교정된 내용이며, `executable`(선택 boolean, 기본값 `false`)은 가져오기가 파일의 실행 bit를 설정할지 정한다. Maker가 pack할 때 교정된 자기 파일로 이 목록을 만든다. 각 path는 유일하다. Boolean이 아닌 `executable`은 아래 schema가 밝히듯 group을 invalid로 만든다.
 
 Group의 산출물은 `folders`의 폴더에만 간다. Group의 rule은 이 위치를 밝힌다. 예를 들어 plan은 `.superpowers/plans/`에 둔다.
 
@@ -33,7 +33,7 @@ Group을 기여하는 maker plugin은 moai(`.moai/`, claude 전용, agent마다 
 
 Group을 가져오면 프로젝트에 다음 순서로 쓴다. 검사가 하나라도 실패하면 어떤 것도 쓰기 전에 전체 가져오기를 규칙의 문장과 함께 거부한다.
 
-1. `folders`의 각 항목을 files sidecar의 `createFolder`로 프로젝트 루트 기준으로 만든다. 각 `files` 항목은 상위 폴더가 생긴 뒤 files sidecar의 `write`로 쓴다. `folders` 밖의 `files` path는 거부한다.
+1. `folders`의 각 항목을 files sidecar의 `createFolder`로 프로젝트 루트 기준으로 만든다. 각 `files` 항목은 상위 폴더가 생긴 뒤 files sidecar의 `write`로 쓴다. `folders` 밖의 `files` path는 거부한다. 요청은 항목의 값을 담은 `executable`을 가지며, 항목에 없으면 `false`다. 현재 text가 항목의 text와 같은 파일은 쓰지 않는다. 다만 실행 가능한 항목은 예외다. Sidecar는 mode를 알려 주지 않으므로, 실행 가능한 항목은 파일의 현재 version으로 다시 쓰며, 이는 text를 유지하고 mode를 0755로 설정한다. Plugin은 `plugin.json`의 `dependencies`에 files sidecar를 `>=0.0.13`으로 선언한다. `executable`을 읽는 version이며, 이전 sidecar는 member를 무시하고 실행 bit가 없는 파일을 만든다.
 2. 각 agent는 정의 식별자 `<group id>-<slug>`를 얻는다. Slug는 agent `name`을 소문자로 바꾸고, `a-z`와 `0-9` 밖의 문자가 연속한 부분을 `-` 하나로 바꾸고, 양 끝의 `-`를 뗀 뒤, 전체 식별자를 64자로 자른 값이다. 빈 slug이거나 group 안에서 식별자가 겹치면 가져오기를 거부하고 agent 이름을 밝힌다.
 3. Agent의 계정은 `cli`가 agent의 `cli`와 같은 계정이다. 없으면 [definitions](definitions.ko.md#가져오기가-만든-계정)가 정한 대로 만든다.
 4. 각 agent의 정의는 role 파일을 가진다. `files`는 agent `path`와 같은 `files` 항목의 프로젝트 루트 기준 절대 경로이고(`core.role.define`이 절대 경로를 받는다), `text`와 `ko`는 각각 그 파일을 밝히는 한 줄이다. 정의의 `cwd`는 창의 프로젝트 루트다. 가져오기는 선언된 명령 `agents.group.import {group}`이며, 정의 section의 view가 연결된 maker group마다 실행한다.
@@ -72,7 +72,7 @@ Model과 환경 변수는 적용하지 않는다. 저장된 정의에 그 값을
       "type": "array",
       "items": {
         "type": "object",
-        "properties": { "path": { "type": "string" }, "text": { "type": "string" } },
+        "properties": { "path": { "type": "string" }, "text": { "type": "string" }, "executable": { "type": "boolean" } },
         "required": ["path", "text"]
       }
     }
