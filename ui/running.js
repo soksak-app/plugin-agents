@@ -1,13 +1,13 @@
 // The tree of the running agents section (A3 in docs/features.md): the group, card and tab tree of core.grid, with the tabs
-// that run an agent CLI. An agent tab is a tab of the terminal plugin whose params name a program (core docs/spec/agent-roles.md,
-// the parameters of core.layout.open). Its name is its role, or else its program. Its activity is the value of core.activity
+// that run an agent CLI. An agent tab is a tab of any plugin whose params name a program (core docs/spec/agent-roles.md, the
+// parameters of core.layout.open); the section names no plugin. Its name is its role, or else its program. Its activity is the value of core.activity
 // for the tab. Items of one level are in drawn order: by the top edge, then by the left edge.
 
 const ACTIVITIES = ["attention", "failed", "running", "idle"];
 
 // The agent tab of a tab record, or null when the tab runs no agent CLI.
 function agentName(tab) {
-  if (tab.plugin !== "terminal" || tab.params === null || typeof tab.params !== "object") return null;
+  if (tab.params === null || typeof tab.params !== "object") return null;
   const { program, role } = tab.params;
   if (typeof program !== "string" || program.length === 0) return null;
   return typeof role === "string" && role.length > 0 ? role : program;

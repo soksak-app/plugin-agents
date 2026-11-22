@@ -19,9 +19,20 @@ test("runningTree lists the agent tabs under their cards and groups, in drawn or
   assert.deepEqual(runningTree(grid, { t1: "running", t3: "idle" }), [
     { kind: "card", id: "c1", children: [{ kind: "tab", id: "t1", name: "builder", activity: "running" }] },
     { kind: "group", id: "g1", name: "Team", children: [
-      { kind: "card", id: "c3", children: [{ kind: "tab", id: "t3", name: "codex", activity: "idle" }] },
+      { kind: "card", id: "c3", children: [
+        { kind: "tab", id: "t3", name: "codex", activity: "idle" },
+        { kind: "tab", id: "t4", name: "codex", activity: null },
+      ] },
     ] },
   ]);
+});
+
+test("runningTree counts a tab of any plugin whose params name a program, and leaves out a terminal tab without one", () => {
+  const tree = runningTree({
+    cards: [{ id: "c9", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [tab("p1", { program: "gemini" }, "other-plugin"), tab("p2", null, "terminal")] }],
+    groups: [],
+  }, {});
+  assert.deepEqual(tree, [{ kind: "card", id: "c9", children: [{ kind: "tab", id: "p1", name: "gemini", activity: null }] }]);
 });
 
 test("runningTree gives a tab with no activity entry the activity null and leaves out cards and groups without agent tabs", () => {
