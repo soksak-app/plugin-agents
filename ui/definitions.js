@@ -6,7 +6,7 @@ import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { createGroup, parseGroups } from "./groups.js";
 import { parseAccounts } from "./accounts.js";
-import { defineDefinition, definitionStatus, parseDefinitions, removeDefinition } from "./definition-records.js";
+import { defineDefinition, parseDefinitions, removeDefinition } from "./definition-records.js";
 import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 
 const CREATE = "agents.group.create";
@@ -14,7 +14,6 @@ const DEFINE = "agents.definition.define";
 const REMOVE = "agents.definition.remove";
 const KEY = "groups";
 const DEFINITIONS = "definitions";
-const STATUS = "agents.definitions";
 const ACCOUNTS = "accounts";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
@@ -167,21 +166,5 @@ for (const [name, element] of [["id", "define-id"], ["name", "define-name"], ["c
 }
 await exposure.delegate(defineForm);
 bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); });
-// The status agents.definitions (F1074): read from the stored records and accounts, and pushed again after each data change of the plugin.
-// The stop function is returned at once, and it ends the listener when the subscription has resolved.
-const readStatus = async () => definitionStatus(
-  parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {}),
-  parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []),
-);
-const subscribeStatus = (listener) => {
-  let stop = null;
-  let ended = false;
-  bridge.runtime.data.on(() => {
-    readStatus().then(listener, (error) => reportError("agents.definitions", `status could not be read: ${error?.message ?? error}`));
-  }).then((off) => { stop = off; if (ended) off(); }, (error) => reportError("agents.definitions", `status subscription: ${error?.message ?? error}`));
-  return () => { ended = true; stop?.(); };
-};
-await exposure.status(STATUS, readStatus, subscribeStatus);
-
 bridge.runtime.data.on(() => { reload(); });
 await reload();

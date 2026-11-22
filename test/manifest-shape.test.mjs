@@ -208,29 +208,7 @@ test("package.json declares the core range of the plugin and the files of its re
   assert.equal(pkg.private, true);
 });
 
-// The status of the definitions (F1074): a plugin that lists agents in dependencies reads each definition with its start values.
-test("plugin.json declares the status agents.definitions as a list of the definitions with their resolved program and arguments", () => {
-  assert.deepEqual(manifest.exposes.status, [
-    {
-      name: "agents.definitions",
-      description: "The agent definitions of the project in the code point order of their identifiers, each with the program and the arguments of its account, so that a plugin can start its session. Published by the definitions section while it is shown.",
-      schema: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            name: { type: "string" },
-            account: { type: "string" },
-            plugin: { type: "string" },
-            program: { type: "string" },
-            args: { type: "array", items: { type: "string" } },
-            role: { type: "string" },
-            cwd: { type: "string" },
-          },
-          required: ["id", "name", "account", "plugin", "program", "args", "role", "cwd"],
-        },
-      },
-    },
-  ]);
+// The status agents.definitions (A13) is removed: the room reads the stored definitions and accounts (F1075), so no status is declared.
+test("plugin.json declares no status", () => {
+  assert.equal(manifest.exposes.status, undefined);
 });
