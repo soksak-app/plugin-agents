@@ -45,6 +45,12 @@
         "description": "Creates an empty group of the project with the given name and returns its identifier.",
         "params": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] },
         "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.running.select",
+        "description": "Selects the tab of a running agent in the window, the tab that the row of the running agents section names.",
+        "params": { "type": "object", "properties": { "tab": { "type": "string" } }, "required": ["tab"] },
+        "result": { "type": "null" }
       }
     ]
   }

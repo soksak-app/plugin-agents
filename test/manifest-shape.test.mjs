@@ -76,13 +76,19 @@ test("plugin.json declares the project data key groups, an object whose default 
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the command agents.group.create with the name as its parameter and the identifier as its result", () => {
+test("plugin.json declares the commands agents.group.create and agents.running.select with their parameters and results", () => {
   assert.deepEqual(manifest.exposes.commands, [
     {
       name: "agents.group.create",
       description: "Creates an empty group of the project with the given name and returns its identifier.",
       params: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.running.select",
+      description: "Selects the tab of a running agent in the window, the tab that the row of the running agents section names.",
+      params: { type: "object", properties: { tab: { type: "string" } }, required: ["tab"] },
+      result: { type: "null" },
     },
   ]);
 });
