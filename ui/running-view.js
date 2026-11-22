@@ -4,8 +4,11 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { runningTree } from "./running.js";
+import { showSession, startSession } from "./sessions.js";
 
 const SELECT = "agents.running.select";
+const START = "agents.session.start";
+const SHOW = "agents.session.show";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
 const losses = [];
@@ -77,6 +80,31 @@ async function select({ tab }) {
   return null;
 }
 
-await Promise.all([exposure.command(SELECT, select), bridge.commands.register(SELECT, select)]);
+// The open sessions of core.sessions, replaced when its watch delivers a new value (A6).
+let sessions = null;
+
+// The core command call of this view: the view may call the core commands (core docs/spec/native-surfaces.md#view-surfaces).
+const callCore = (name, params) => bridge.calls.request(name, params);
+
+// The size of a new session: the view in points and the device scale. A tab that shows the session resizes it to its card.
+const viewSize = () => ({ width: window.innerWidth, height: window.innerHeight, scale: window.devicePixelRatio });
+
+// The command agents.session.start {plugin, params}: starts an owned session that no tab holds.
+async function startAgentSession({ plugin, params }) {
+  return { session: await startSession(callCore, { plugin, params, size: viewSize() }) };
+}
+
+// The command agents.session.show {session}: shows the open session in the current card.
+async function showAgentSession({ session }) {
+  await showSession(callCore, { session }, sessions);
+  return null;
+}
+
+await Promise.all([
+  exposure.command(SELECT, select), bridge.commands.register(SELECT, select),
+  exposure.command(START, startAgentSession), bridge.commands.register(START, startAgentSession),
+  exposure.command(SHOW, showAgentSession), bridge.commands.register(SHOW, showAgentSession),
+]);
 bridge.runtime.status.watch("core.grid", (value) => { grid = value; render(); });
 bridge.runtime.status.watch("core.activity", (value) => { activity = value?.tabs ?? {}; render(); });
+bridge.runtime.status.watch("core.sessions", (value) => { sessions = value; });

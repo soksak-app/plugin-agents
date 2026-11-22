@@ -76,7 +76,7 @@ test("plugin.json declares the project data key groups, an object whose default 
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove and agents.running.select with their parameters and results", () => {
+test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select, agents.session.start and agents.session.show with their parameters and results", () => {
   assert.deepEqual(manifest.exposes.commands, [
     {
       name: "agents.group.create",
@@ -100,6 +100,18 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       name: "agents.running.select",
       description: "Selects the tab of a running agent in the window, the tab that the row of the running agents section names.",
       params: { type: "object", properties: { tab: { type: "string" } }, required: ["tab"] },
+      result: { type: "null" },
+    },
+    {
+      name: "agents.session.start",
+      description: "Starts a session of the plugin with the params as an owned session of this section, with core.session.open. No tab holds it until agents.session.show shows it. Returns the session identifier.",
+      params: { type: "object", properties: { plugin: { type: "string" }, params: { type: "object" } }, required: ["plugin", "params"] },
+      result: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
+    },
+    {
+      name: "agents.session.show",
+      description: "Shows a session that core.sessions lists as open in the current card of the window, with core.layout.open, so that the tab attaches to the session.",
+      params: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
       result: { type: "null" },
     },
   ]);
