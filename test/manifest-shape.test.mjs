@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -61,10 +61,28 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
   }
 });
 
-test("plugin.json declares no surface, host page, state module or extension point yet", () => {
-  for (const member of ["surface", "host", "hostOperations", "state", "extends", "contributes", "settings", "data", "exposes"]) {
+test("plugin.json declares no surface, host page, state module, contribution or settings yet", () => {
+  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings", "data", "exposes"]) {
     assert.equal(manifest[member], undefined, `plugin.json declares ${member}`);
   }
+});
+
+// The extension point of the maker plugins (core docs/spec/plugins.md#extension-points): the provider declares it in extends,
+// and an item of a maker contributes one group with the fields of the point schema; range and module are not schema fields.
+test("plugin.json declares the extension point agents.makers in extends with its version and schema", () => {
+  assert.deepEqual(manifest.extends, {
+    makers: {
+      version: "0.1.0",
+      schema: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          name: { type: "string" },
+        },
+        required: ["id", "name"],
+      },
+    },
+  });
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
