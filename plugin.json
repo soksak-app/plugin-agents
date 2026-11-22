@@ -13,6 +13,15 @@
       "height": "fill"
     },
     {
+      "id": "agents.accounts",
+      "name": "에이전트 계정",
+      "composition": {
+        "kind": "view",
+        "page": "ui/accounts.html"
+      },
+      "height": "fill"
+    },
+    {
       "id": "agents.definitions",
       "name": "에이전트 정의",
       "composition": {
@@ -36,7 +45,22 @@
     }
   },
   "data": {
-    "groups": { "schema": { "type": "object" }, "default": {} }
+    "groups": { "schema": { "type": "object" }, "default": {} },
+    "accounts": {
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "cli": { "type": "string" },
+            "args": { "type": "array", "items": { "type": "string" } },
+            "env": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "default": []
+    }
   },
   "exposes": {
     "commands": [
@@ -74,6 +98,18 @@
         "name": "agents.session.show",
         "description": "Shows a session that core.sessions lists as open in the current card of the window, with core.layout.open, so that the tab attaches to the session.",
         "params": { "type": "object", "properties": { "session": { "type": "string" } }, "required": ["session"] },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "agents.account.define",
+        "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
+        "params": { "type": "object", "properties": { "id": { "type": "string" }, "cli": { "type": "string" }, "args": { "type": "string" }, "env": { "type": "string" } }, "required": ["id", "cli", "args", "env"] },
+        "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.account.remove",
+        "description": "Removes the agent account with the identifier from the project.",
+        "params": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] },
         "result": { "type": "null" }
       }
     ]

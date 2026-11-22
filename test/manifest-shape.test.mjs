@@ -24,12 +24,18 @@ test("plugin.json declares the identifier agents and a description of one to two
   assert.ok(manifest.description.length >= 1 && manifest.description.length <= 200, "description length is outside 1 to 200");
 });
 
-test("plugin.json declares the running agents and the agent definitions as view sections", () => {
+test("plugin.json declares the running agents, the agent accounts and the agent definitions as view sections", () => {
   assert.deepEqual(manifest.sections, [
     {
       id: "agents.running",
       name: "실행 중인 에이전트",
       composition: { kind: "view", page: "ui/running.html" },
+      height: "fill",
+    },
+    {
+      id: "agents.accounts",
+      name: "에이전트 계정",
+      composition: { kind: "view", page: "ui/accounts.html" },
       height: "fill",
     },
     {
@@ -68,10 +74,45 @@ test("plugin.json declares no surface, host page, state module, contribution or 
 });
 
 // The project data of the definitions section: the groups, one value per key (docs/spec/plugins.md#project-data, A4).
-test("plugin.json declares the project data key groups, an object whose default is empty", () => {
+test("plugin.json declares the project data keys groups and accounts, whose defaults are empty", () => {
   assert.deepEqual(manifest.data, {
     groups: { schema: { type: "object" }, default: {} },
+    accounts: {
+      schema: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            cli: { type: "string" },
+            args: { type: "array", items: { type: "string" } },
+            env: { type: "array", items: { type: "string" } },
+          },
+        },
+      },
+      default: [],
+    },
   });
+});
+
+// The commands of the accounts section (A2): the define command adds an account or replaces the one with the same identifier,
+// and its args and env are text with one entry per line, as the form enters them.
+test("plugin.json declares the commands agents.account.define and agents.account.remove with their parameters and results", () => {
+  const commands = manifest.exposes.commands.filter((command) => command.name.startsWith("agents.account."));
+  assert.deepEqual(commands, [
+    {
+      name: "agents.account.define",
+      description: "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
+      params: { type: "object", properties: { id: { type: "string" }, cli: { type: "string" }, args: { type: "string" }, env: { type: "string" } }, required: ["id", "cli", "args", "env"] },
+      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.account.remove",
+      description: "Removes the agent account with the identifier from the project.",
+      params: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+      result: { type: "null" },
+    },
+  ]);
 });
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
@@ -112,6 +153,18 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       name: "agents.session.show",
       description: "Shows a session that core.sessions lists as open in the current card of the window, with core.layout.open, so that the tab attaches to the session.",
       params: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
+      result: { type: "null" },
+    },
+    {
+      name: "agents.account.define",
+      description: "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
+      params: { type: "object", properties: { id: { type: "string" }, cli: { type: "string" }, args: { type: "string" }, env: { type: "string" } }, required: ["id", "cli", "args", "env"] },
+      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.account.remove",
+      description: "Removes the agent account with the identifier from the project.",
+      params: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
       result: { type: "null" },
     },
   ]);
