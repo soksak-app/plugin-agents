@@ -1,10 +1,15 @@
-// The agent definitions section (A4): lists the groups of the project and creates an empty group. The groups are project data
-// under the key groups (plugin.json data), read and changed through the view bridge; the rules are those of groups.js.
+// The agent definitions section (A4, A5): lists the groups of the project with their roles, creates an empty group and defines
+// a role in a group. The groups are project data under the key groups (plugin.json data), read and changed through the view
+// bridge; the group rules are those of groups.js and the role rules those of roles.js. A role is defined and removed through
+// core.role.define and core.role.remove, and its text is read from the status core.roles.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
-import { createGroup, groupRows, parseGroups } from "./groups.js";
+import { createGroup, parseGroups } from "./groups.js";
+import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 
-const COMMAND = "agents.group.create";
+const CREATE = "agents.group.create";
+const DEFINE = "agents.definition.define";
+const REMOVE = "agents.definition.remove";
 const KEY = "groups";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
@@ -24,22 +29,52 @@ const list = document.getElementById("groups");
 const empty = document.getElementById("empty");
 const form = document.getElementById("create");
 const input = document.getElementById("name");
+const defineForm = document.getElementById("define");
+const defineGroup = document.getElementById("define-group");
 
-// Draws the rows of the groups that the project stores, or the empty state.
-function render(groups) {
-  const rows = groupRows(groups);
+// The values of the two reads, each replaced when its watch delivers a new one: the groups of the project and core.roles.
+let groups = {};
+let roles = null;
+
+// Draws each group with its roles, and the group choice of the define form. Nothing is drawn before core.roles has arrived.
+function render() {
+  if (roles === null) return;
+  const rows = roleRows(groups, roles);
   list.replaceChildren(...rows.map((row) => {
     const item = document.createElement("li");
-    item.textContent = `${row.name} (${row.count})`;
+    const head = document.createElement("p");
+    head.textContent = `${row.name} (${row.members.length})`;
+    const members = document.createElement("ul");
+    members.replaceChildren(...row.members.map((member) => {
+      const line = document.createElement("li");
+      line.textContent = member.defined ? `${member.id}: ${member.text}` : `${member.id}: 정의되지 않음`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "제거";
+      line.append(remove);
+      // The button runs the command with its group and identifier; the binder connects the element to the declared command.
+      exposure.bind(remove, REMOVE, { group: row.id, id: member.id }).catch((error) => reportError("agents.definitions", `bind ${member.id}: ${error?.message ?? error}`));
+      return line;
+    }));
+    item.append(head, members);
     return item;
   }));
+  const selected = defineGroup.value;
+  defineGroup.replaceChildren(...rows.map((row) => {
+    const option = document.createElement("option");
+    option.value = row.id;
+    option.textContent = row.name;
+    return option;
+  }));
+  if (rows.some((row) => row.id === selected)) defineGroup.value = selected;
   empty.hidden = rows.length > 0;
 }
 
 // Reads the groups of the project and draws them; a stored value that does not match the rule is written to the log.
 async function reload() {
   try {
-    render(parseGroups((await bridge.runtime.data.get(KEY)) ?? {}));
+    groups = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
+    render();
   } catch (error) {
     reportError("agents.definitions", `groups could not be read: ${error?.message ?? error}`);
   }
@@ -55,6 +90,26 @@ async function create({ name }) {
   return { id };
 }
 
+// The command agents.definition.define {group, id, text, ko, files}: checks the group and the membership before core is called,
+// defines the role with core.role.define, then adds its identifier to the members of the group. A refusal of core writes no member.
+async function define({ group, id, text, ko, files }) {
+  const current = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
+  addMember(current, group, id);
+  const stored = await bridge.calls.request("core.role.define", { id, text, ko, files: parseFiles(files) });
+  await bridge.runtime.data.change(KEY, (value) => addMember(value, group, stored.id));
+  return { id: stored.id };
+}
+
+// The command agents.definition.remove {group, id}: checks the membership, removes the role with core.role.remove, then removes
+// the identifier from the members of the group. A refusal of core keeps the member.
+async function remove({ group, id }) {
+  const current = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
+  removeMember(current, group, id);
+  await bridge.calls.request("core.role.remove", { id });
+  await bridge.runtime.data.change(KEY, (value) => removeMember(value, group, id));
+  return null;
+}
+
 const exposure = createExpose({
   register: (kind, name) => kind === "command"
     ? Promise.resolve()
@@ -64,10 +119,21 @@ const exposure = createExpose({
   report: (text) => reportError("agents.definitions", String(text)),
 }, () => start.declarations);
 
-// The form enters the name through the input; Enter runs the command instead of submitting the page.
+// The forms enter their values through the inputs; Enter runs the command instead of submitting the page.
 form.addEventListener("submit", (event) => event.preventDefault());
-await Promise.all([exposure.command(COMMAND, create), bridge.commands.register(COMMAND, create)]);
-await exposure.mark(input, COMMAND, {}, "name");
+defineForm.addEventListener("submit", (event) => event.preventDefault());
+await Promise.all([
+  exposure.command(CREATE, create), bridge.commands.register(CREATE, create),
+  exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
+  exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
+]);
+await exposure.mark(input, CREATE, {}, "name");
 await exposure.delegate(form);
+await exposure.mark(defineGroup, DEFINE, {}, "group");
+for (const [name, element] of [["id", "define-id"], ["text", "define-text"], ["ko", "define-ko"], ["files", "define-files"]]) {
+  await exposure.mark(document.getElementById(element), DEFINE, {}, name);
+}
+await exposure.delegate(defineForm);
+bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); });
 bridge.runtime.data.on(() => { reload(); });
 await reload();
