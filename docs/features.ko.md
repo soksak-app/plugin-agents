@@ -1,0 +1,10 @@
+# 기능
+
+항목 상태는 `[ ]` 대기, `[~]` 진행, `[o]` 완료, `[!]` 보류, `[-]` 종료다.
+- [o] A1 — P1: Manifest `plugin.json`이 식별자 `agents`, 이름, 설명과 두 section `agents.running`, `agents.definitions`를 각각 page(A3, A4)를 가진 view section으로 선언한다. `test/manifest-shape.test.mjs`가 그 선언을 core plugin spec의 manifest 규칙과 대조한다.
+- [!] A2 — P1: 에이전트 CLI 계정을 settings로 선언한다. 보류: 계정이 아직 settings로 선언되지 않았다. 원인: core plugin spec의 settings 선언은 setting마다 scalar 값 하나(enum, 정수 범위, 문자열, address)만 담고, 계정 목록을 담는 선언이 없다. 재개 조건: plugin 소유자가 계정을 core settings 형식으로 둘지, plugin의 project data(`data`)에 든 목록으로 둘지 정하면 이 항목을 재개한다.
+- [ ] A3 — P1: 실행 중인 에이전트 section `agents.running`은 에이전트 CLI를 실행하는 창의 terminal tab을 group, card, tab의 tree로 보여 준다. 각 행은 정의 이름, program 상태 status와 활동을 보여 준다. 행을 누르면 그 tab을 선택한다. 목록은 polling 없이 layout과 status event를 따른다. Manifest 항목과 page `ui/running.html`은 A1에 있고, page에는 아직 본문이 없다. 대기: 없음.
+- [ ] A4 — P1: 에이전트 정의 section `agents.definitions`은 프로젝트의 group을 보여 주고, 사람이 빈 group을 만들게 한다. 빈 group은 plugin data의 `groups/<group>/`에 보관한다. Group 안의 정의는 A5를 기다린다. Manifest 항목과 page `ui/definitions.html`은 A1에 있고, page에는 아직 본문이 없다. 빈 group의 대기: 없음.
+- [ ] A5 — P1, core checklist의 F1063을 따른다: 정의는 role 명령 `core.role.define`과 `core.role.remove`를 쓰고 status `core.roles`를 읽어서, 정의의 지시 본문이 `roles.json`에만 있게 한다. 대기: core F1063-2.
+- [ ] A6 — P1, core checklist의 F1062를 따른다: 실행 중인 에이전트는 core의 owned session을 쓴다. 정의의 에이전트는 어떤 tab도 쥐지 않는 session에서 시작하고, tab은 요청할 때 그 session을 보여 준다. 대기: core F1062-3.
+- [!] A7 — P1, A1의 후속: Plugin은 extension point `agents.makers`를 선언하고, maker plugin들이 그곳에 group을 기여한다. 보류: point가 선언되지 않았다. 원인: core plugin spec은 point를 `extends`에 선언하고 `contributes`는 다른 plugin의 point에 대한 항목을 담는다. 또 `extends`는 `surface`를 요구하는데, agent workspace 계획은 `agents`의 surface를 정하지 않았다. 재개 조건: plugin 소유자가 `agents`에 surface를 둘지 정하거나, core spec이 `extends`의 요구를 바꾸면 이 항목을 재개한다.

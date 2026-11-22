@@ -1,0 +1,25 @@
+{
+  "id": "agents",
+  "name": "에이전트",
+  "description": "에이전트 CLI 계정, 실행 중인 에이전트와 에이전트 정의를 사이드바에 보여 준다. 카드 표면은 없다.",
+  "sections": [
+    {
+      "id": "agents.running",
+      "name": "실행 중인 에이전트",
+      "composition": {
+        "kind": "view",
+        "page": "ui/running.html"
+      },
+      "height": "fill"
+    },
+    {
+      "id": "agents.definitions",
+      "name": "에이전트 정의",
+      "composition": {
+        "kind": "view",
+        "page": "ui/definitions.html"
+      },
+      "height": "fill"
+    }
+  ]
+}
