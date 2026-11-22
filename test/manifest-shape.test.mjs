@@ -213,7 +213,7 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.41" });
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.47" });
   assert.deepEqual(pkg.files, ["plugin.json", "ui"]);
   assert.equal(pkg.private, true);
 });

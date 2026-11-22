@@ -32,3 +32,4 @@
 - A19: A `files` entry of a maker group takes an optional boolean `executable`. The import passes it to `write` of the files sidecar, and an executable entry whose text is current is written again so that its mode becomes 0755. A non-boolean `executable` makes the group invalid, and `plugin.json` declares `@soksak/sidecar-files` at `>=0.0.13`. Tests: `test/makers.test.mjs`, `test/makers-files.test.mjs` and `test/manifest-shape.test.mjs`.
 - A20: `release.yml` checks each push to main and releases the version of `package.json` with `make pack` when its tag is absent.
 - A21: The version is 0.0.1, because harness and superpowers declare `@soksak/plugin-agents` `^0.0.1` and `>=0.0.1`, which the release v0.0.0 does not meet.
+- A22: `engines.soksak` is `^0.0.47`, and the version is 0.0.2.

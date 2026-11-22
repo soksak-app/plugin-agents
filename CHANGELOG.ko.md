@@ -32,3 +32,4 @@
 - A19: Maker group의 `files` 항목이 선택 boolean `executable`을 받는다. 가져오기는 이를 files sidecar의 `write`에 넘기며, text가 현재인 실행 가능 항목도 다시 써서 mode가 0755가 되게 한다. Boolean이 아닌 `executable`은 group을 invalid로 만들고, `plugin.json`은 `@soksak/sidecar-files`를 `>=0.0.13`으로 선언한다. Test: `test/makers.test.mjs`, `test/makers-files.test.mjs`, `test/manifest-shape.test.mjs`.
 - A20: `release.yml`이 main push마다 검사하고, tag가 없으면 `package.json`의 version을 `make pack`으로 release한다.
 - A21: 버전이 0.0.1이 됐다. harness와 superpowers가 `@soksak/plugin-agents` `^0.0.1`과 `>=0.0.1`을 선언하는데 release v0.0.0은 이를 만족하지 않기 때문이다.
+- A22: `engines.soksak`은 `^0.0.47`이고, version은 0.0.2다.
