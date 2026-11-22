@@ -3,7 +3,7 @@
 // values are the expectations.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defineDefinition, definitionsUsingAccount, parseDefinitions, removeDefinition, resolveDefinition } from "../ui/definition-records.js";
+import { defineDefinition, definitionStartParams, definitionsUsingAccount, parseDefinitions, removeDefinition, resolveDefinition } from "../ui/definition-records.js";
 
 const ACCOUNTS = [{ id: "claude-main", cli: "claude", args: ["--verbose"], env: [] }];
 const FIELDS = { name: "Reviewer", account: "claude-main", plugin: "terminal", cwd: "/work/project" };
@@ -70,4 +70,10 @@ test("definitionsUsingAccount lists the identifiers of the definitions that name
   );
   assert.deepEqual(definitionsUsingAccount(definitions, "claude-main"), ["reviewer"]);
   assert.deepEqual(definitionsUsingAccount(definitions, "unused"), []);
+});
+
+test("definitionStartParams gives the start parameters of the terminal session: the program, its arguments, the directory and the role", () => {
+  const definitions = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
+  const resolved = resolveDefinition(definitions, ACCOUNTS, "reviewer");
+  assert.deepEqual(definitionStartParams(resolved), { program: "claude", args: ["--verbose"], directory: "/work/project", role: "reviewer" });
 });

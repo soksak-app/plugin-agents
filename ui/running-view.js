@@ -3,6 +3,8 @@
 // which selects the tab through core.layout.select. The tree rules are those of running.js.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
+import { parseAccounts } from "./accounts.js";
+import { parseDefinitions, definitionStartParams, resolveDefinition } from "./definition-records.js";
 import { runningTree } from "./running.js";
 import { showSession, startSession } from "./sessions.js";
 
@@ -25,6 +27,8 @@ if (start === null || typeof start !== "object") throw new Error("the running ag
 
 const list = document.getElementById("tree");
 const empty = document.getElementById("empty");
+const definitionList = document.getElementById("definitions");
+const noDefinitions = document.getElementById("no-definitions");
 
 const exposure = createExpose({
   register: (kind, name) => kind === "command"
@@ -108,3 +112,34 @@ await Promise.all([
 bridge.runtime.status.watch("core.grid", (value) => { grid = value; render(); });
 bridge.runtime.status.watch("core.activity", (value) => { activity = value?.tabs ?? {}; render(); });
 bridge.runtime.status.watch("core.sessions", (value) => { sessions = value; });
+
+// The definitions and the accounts of the project (A5), replaced when the project data changes. A row starts the agent of its
+// definition through agents.session.start with the parameters that definitionStartParams gives; the binder binds each row to them.
+let definitionRecords = {};
+let accountList = [];
+
+function renderDefinitions() {
+  const ids = Object.keys(definitionRecords).sort();
+  const rows = ids.map((id) => resolveDefinition(definitionRecords, accountList, id));
+  definitionList.replaceChildren(...rows.map((row) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = `${row.name} · ${row.program}`;
+    exposure.bind(button, START, { plugin: row.plugin, params: definitionStartParams(row) }).catch((error) => reportError("agents.running", `bind ${row.id}: ${error?.message ?? error}`));
+    return button;
+  }));
+  noDefinitions.hidden = rows.length > 0;
+}
+
+async function reloadDefinitions() {
+  try {
+    definitionRecords = parseDefinitions((await bridge.runtime.data.get("definitions")) ?? {});
+    accountList = parseAccounts((await bridge.runtime.data.get("accounts")) ?? []);
+    renderDefinitions();
+  } catch (error) {
+    reportError("agents.running", `definitions could not be read: ${error?.message ?? error}`);
+  }
+}
+
+bridge.runtime.data.on(() => { reloadDefinitions(); });
+await reloadDefinitions();
