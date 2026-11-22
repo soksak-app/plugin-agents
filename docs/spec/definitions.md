@@ -9,6 +9,10 @@ The agents plugin stores two project data keys (`plugin.json` `data`, [project d
 - `accounts`: an array of accounts, default `[]`. Each account is `{id, cli, args, env}`: `id` matches `^[a-z][a-z0-9-]{0,39}$` and is unique; `cli` is the program name of the agent CLI, 1 to 255 characters without white space or control characters; `args` is an array of text, one argument each; `env` is an array of unique environment variable names matching `^[A-Za-z_][A-Za-z0-9_]{0,127}$`. No variable value is stored.
 - `definitions`: an object, default `{}`, of definition identifier to `{name, account, plugin, role, cwd}`. `name` is 1 to 40 characters; `account` names an account of `accounts`; `plugin` is the plugin that runs the session (the setting `terminalPlugin`, default `terminal`, when the definition was made); `role` is the core role identifier, equal to the definition identifier; `cwd` is an absolute path.
 
+## Accounts created by an import
+
+When a maker group is imported ([makers](makers.md#import)) and no account has the `cli` of an agent, the import creates the account `{id: <cli>, cli: <cli>, args: [], env: []}`. An account that already has the identifier `<cli>` with another `cli` refuses the import and names that account. No other account is created by an import.
+
 ## Resolution
 
 A definition's program and arguments are not stored. A reader resolves them from its account: `program` is the account's `cli` and `args` is its `args`. A definition whose account is not defined is refused, not resolved to a default.
