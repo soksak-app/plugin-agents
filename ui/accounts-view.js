@@ -3,6 +3,7 @@
 // those of accounts.js.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
+import { exposurePort } from "./exposure-port.js";
 import { accountFromText, accountRows, parseAccounts, removeAccount } from "./accounts.js";
 import { definitionsUsingAccount, parseDefinitions } from "./definition-records.js";
 
@@ -75,14 +76,7 @@ async function remove({ id }) {
   return null;
 }
 
-const exposure = createExpose({
-  register: (kind, name) => kind === "command"
-    ? Promise.resolve()
-    : bridge.calls.request("runtime.native.call", { name: "registered", payload: { kind, name } }).then(() => undefined),
-  onRequest: (answer) => bridge.runtime.native.on("exposure-request", answer),
-  reply: (id, payload) => bridge.calls.request("runtime.native.call", { name: "exposureReply", payload: { id, ...payload } }),
-  report: (text) => reportError("agents.accounts", String(text)),
-}, () => start.declarations);
+const exposure = createExpose(exposurePort(bridge, "agents.accounts", reportError), () => start.declarations);
 
 // The form enters its values through the inputs; Enter runs the command instead of submitting the page.
 form.addEventListener("submit", (event) => event.preventDefault());

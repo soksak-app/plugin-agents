@@ -1,6 +1,6 @@
 {
   "name": "@soksak/plugin-agents",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
@@ -21,6 +21,7 @@
     "test": "node --test --test-timeout=120000 test/"
   },
   "devDependencies": {
-    "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz"
+    "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz",
+    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#d4965171b2aa40233ba0de15555be2dada33e505&path:/packages/plugin-api"
   }
 }

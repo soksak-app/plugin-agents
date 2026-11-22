@@ -4,6 +4,7 @@
 // core.role.define and core.role.remove, and its text is read from the status core.roles.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
+import { exposurePort } from "./exposure-port.js";
 import { createGroup, parseGroups } from "./groups.js";
 import { parseAccounts } from "./accounts.js";
 import { defineDefinition, parseDefinitions, removeDefinition } from "./definition-records.js";
@@ -145,14 +146,7 @@ async function remove({ group, id }) {
   return null;
 }
 
-const exposure = createExpose({
-  register: (kind, name) => kind === "command"
-    ? Promise.resolve()
-    : bridge.calls.request("runtime.native.call", { name: "registered", payload: { kind, name } }).then(() => undefined),
-  onRequest: (answer) => bridge.runtime.native.on("exposure-request", answer),
-  reply: (id, payload) => bridge.calls.request("runtime.native.call", { name: "exposureReply", payload: { id, ...payload } }),
-  report: (text) => reportError("agents.definitions", String(text)),
-}, () => start.declarations);
+const exposure = createExpose(exposurePort(bridge, "agents.definitions", reportError), () => start.declarations);
 
 // The files sidecar of the section writes the files of a maker group (A17-3). Its replies reach requests, which pairs each with its request.
 const files = bridge.runtime.sidecar(SIDECAR);

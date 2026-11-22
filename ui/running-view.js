@@ -3,6 +3,7 @@
 // which selects the tab through core.layout.select. The tree rules are those of running.js.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
+import { exposurePort } from "./exposure-port.js";
 import { parseAccounts } from "./accounts.js";
 import { parseDefinitions, definitionStartParams, resolveDefinition } from "./definition-records.js";
 import { runningTree } from "./running.js";
@@ -30,14 +31,7 @@ const empty = document.getElementById("empty");
 const definitionList = document.getElementById("definitions");
 const noDefinitions = document.getElementById("no-definitions");
 
-const exposure = createExpose({
-  register: (kind, name) => kind === "command"
-    ? Promise.resolve()
-    : bridge.calls.request("runtime.native.call", { name: "registered", payload: { kind, name } }).then(() => undefined),
-  onRequest: (answer) => bridge.runtime.native.on("exposure-request", answer),
-  reply: (id, payload) => bridge.calls.request("runtime.native.call", { name: "exposureReply", payload: { id, ...payload } }),
-  report: (text) => reportError("agents.running", String(text)),
-}, () => start.declarations);
+const exposure = createExpose(exposurePort(bridge, "agents.running", reportError), () => start.declarations);
 
 // The values of the two statuses, each replaced when its watch delivers a new one.
 let grid = null;

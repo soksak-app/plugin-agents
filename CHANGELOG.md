@@ -33,3 +33,4 @@
 - A20: `release.yml` checks each push to main and releases the version of `package.json` with `make pack` when its tag is absent.
 - A21: The version is 0.0.1, because harness and superpowers declare `@soksak/plugin-agents` `^0.0.1` and `>=0.0.1`, which the release v0.0.0 does not meet.
 - A22: `engines.soksak` is `^0.0.47`, and the version is 0.0.2.
+- A23: The agents pages build the exposure port with `ui/exposure-port.js`, which carries `changed` and `report` from `bridge.exposure`, so `createExpose` accepts it and the pages register their commands; `test/exposure-port.test.mjs` runs the `createExpose` of `@soksak/plugin-api`. The version is 0.0.3.

@@ -33,3 +33,4 @@
 - A20: `release.yml`이 main push마다 검사하고, tag가 없으면 `package.json`의 version을 `make pack`으로 release한다.
 - A21: 버전이 0.0.1이 됐다. harness와 superpowers가 `@soksak/plugin-agents` `^0.0.1`과 `>=0.0.1`을 선언하는데 release v0.0.0은 이를 만족하지 않기 때문이다.
 - A22: `engines.soksak`은 `^0.0.47`이고, version은 0.0.2다.
+- A23: Agents page가 `ui/exposure-port.js`로 exposure port를 만들고, 이 port가 `bridge.exposure`의 `changed`와 `report`를 가지므로 `createExpose`가 받아들이고 page가 command를 등록한다. `test/exposure-port.test.mjs`가 `@soksak/plugin-api`의 `createExpose`를 실행한다. Version은 0.0.3이다.

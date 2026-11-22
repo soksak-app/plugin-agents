@@ -1,7 +1,7 @@
 # agents plugin repository 의 test, check 와 pack(docs/features.md). pack 은 pnpm pack 으로 release 를 쓴다.
 .PHONY: install test check pack check-push install-hooks
 
-# test 는 이 plugin 의 테스트만 실행한다. SDK 도구와 SDK import 를 쓰지 않는다.
+# test 는 이 plugin 의 테스트만 실행한다. exposure port 테스트는 development dependency @soksak/plugin-api 의 createExpose 를 import 한다.
 # The installation stage (core docs/spec/plugins.md#repositories): it installs the locked dependencies; the tests, checks and packs consume them without installing.
 install:
 	pnpm install --frozen-lockfile
