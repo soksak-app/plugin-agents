@@ -76,13 +76,25 @@ test("plugin.json declares the project data key groups, an object whose default 
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the commands agents.group.create and agents.running.select with their parameters and results", () => {
+test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove and agents.running.select with their parameters and results", () => {
   assert.deepEqual(manifest.exposes.commands, [
     {
       name: "agents.group.create",
       description: "Creates an empty group of the project with the given name and returns its identifier.",
       params: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.definition.define",
+      description: "Defines the role of a definition in a group: defines the role with core.role.define, then adds its identifier to the members of the group. The files are the absolute paths, one per line. Returns the identifier.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" }, text: { type: "string" }, ko: { type: "string" }, files: { type: "string" } }, required: ["group", "id", "text", "ko", "files"] },
+      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.definition.remove",
+      description: "Removes the role of a definition from a group: removes the role with core.role.remove, then removes its identifier from the members of the group.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" } }, required: ["group", "id"] },
+      result: { type: "null" },
     },
     {
       name: "agents.running.select",
