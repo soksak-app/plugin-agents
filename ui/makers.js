@@ -6,6 +6,10 @@ import { addMember } from "./roles.js";
 import { defineAccount, parseAccounts } from "./accounts.js";
 import { defineDefinition, parseDefinitions } from "./definition-records.js";
 
+// The extension point of the maker groups as the provider names it: the local name that plugin.json declares in extends. The
+// contributions of the view bridge refuse the full name agents.makers (core docs/spec/plugins.md#extension-points).
+export const MAKERS_POINT = "makers";
+
 const CLIS = ["claude", "codex"];
 const DEFINITION_ID_MAX = 64;
 const GROUP_MEMBERS = ["agents", "clis", "folders", "files", "id", "name", "path", "plugin", "rules", "skills", "variables"];

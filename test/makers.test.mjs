@@ -2,7 +2,8 @@
 // of each agent and the plan of the writes, with the rules of ui/makers.js.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { agentSlug, definitionIdentifier, importPlan, parseMakerGroup } from "../ui/makers.js";
+import { readFileSync } from "node:fs";
+import { MAKERS_POINT, agentSlug, definitionIdentifier, importPlan, parseMakerGroup } from "../ui/makers.js";
 
 const group = (overrides = {}) => ({
   id: "moai",
@@ -120,4 +121,11 @@ test("parseMakerGroup accepts a folder under .claude/ with its files, and the im
   assert.equal(parseMakerGroup(claude, "moai").folders[0], ".claude/");
   const plan = importPlan({ group: claude, groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
   assert.deepEqual(plan.files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n", executable: false }]);
+});
+
+// The provider reads its items by the local name of the point; core refuses any name that is not a key of extends (A24).
+test("the definitions page reads the maker groups by the local point name that plugin.json declares in extends", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../plugin.json", import.meta.url), "utf8"));
+  assert.ok(Object.hasOwn(manifest.extends, MAKERS_POINT), `${MAKERS_POINT} is not a key of extends`);
+  assert.equal(MAKERS_POINT, "makers");
 });

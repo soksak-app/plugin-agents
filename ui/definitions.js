@@ -11,7 +11,7 @@ import { defineDefinition, parseDefinitions, removeDefinition } from "./definiti
 import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 import { createRequests } from "./makers-files.js";
 import { importGroup, storedChanges } from "./makers-import.js";
-import { parseMakerGroup } from "./makers.js";
+import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
 
 const CREATE = "agents.group.create";
 const DEFINE = "agents.definition.define";
@@ -176,7 +176,7 @@ function renderMakers() {
 
 async function reloadMakers() {
   try {
-    makers = await bridge.contributions("agents.makers");
+    makers = await bridge.contributions(MAKERS_POINT);
     renderMakers();
   } catch (error) {
     reportError("agents.definitions", `maker groups could not be read: ${error?.message ?? error}`);
