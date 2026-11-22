@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends", "data"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -62,9 +62,16 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
 });
 
 test("plugin.json declares no surface, host page, state module, contribution or settings yet", () => {
-  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings", "data", "exposes"]) {
+  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings", "exposes"]) {
     assert.equal(manifest[member], undefined, `plugin.json declares ${member}`);
   }
+});
+
+// The project data of the definitions section: the groups, one value per key (docs/spec/plugins.md#project-data, A4).
+test("plugin.json declares the project data key groups, an object whose default is empty", () => {
+  assert.deepEqual(manifest.data, {
+    groups: { schema: { type: "object" }, default: {} },
+  });
 });
 
 // The extension point of the maker plugins (core docs/spec/plugins.md#extension-points): the provider declares it in extends,

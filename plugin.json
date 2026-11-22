@@ -34,5 +34,8 @@
         "required": ["id", "name"]
       }
     }
+  },
+  "data": {
+    "groups": { "schema": { "type": "object" }, "default": {} }
   }
 }
