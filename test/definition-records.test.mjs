@@ -3,7 +3,7 @@
 // values are the expectations.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defineDefinition, definitionStartParams, definitionsUsingAccount, parseDefinitions, removeDefinition, resolveDefinition } from "../ui/definition-records.js";
+import { defineDefinition, definitionStartParams, definitionStatus, definitionsUsingAccount, parseDefinitions, removeDefinition, resolveDefinition } from "../ui/definition-records.js";
 
 const ACCOUNTS = [{ id: "claude-main", cli: "claude", args: ["--verbose"], env: [] }];
 const FIELDS = { name: "Reviewer", account: "claude-main", plugin: "terminal", cwd: "/work/project" };
@@ -76,4 +76,24 @@ test("definitionStartParams gives the start parameters of the terminal session: 
   const definitions = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
   const resolved = resolveDefinition(definitions, ACCOUNTS, "reviewer");
   assert.deepEqual(definitionStartParams(resolved), { program: "claude", args: ["--verbose"], directory: "/work/project", role: "reviewer" });
+});
+
+// The status agents.definitions (F1074): the definitions with the program and arguments of their accounts, in the code point order
+// of their identifiers, so a plugin that lists agents in dependencies reads each definition with the start values of its session.
+test("definitionStatus lists each definition with its resolved program and arguments in the code point order of its identifier", () => {
+  const definitions = defineDefinition(
+    defineDefinition({}, ACCOUNTS, { id: "writer", ...FIELDS, name: "Writer" }),
+    ACCOUNTS,
+    { id: "reviewer", ...FIELDS },
+  );
+  assert.deepEqual(definitionStatus(definitions, ACCOUNTS), [
+    { id: "reviewer", name: "Reviewer", account: "claude-main", plugin: "terminal", program: "claude", args: ["--verbose"], role: "reviewer", cwd: "/work/project" },
+    { id: "writer", name: "Writer", account: "claude-main", plugin: "terminal", program: "claude", args: ["--verbose"], role: "writer", cwd: "/work/project" },
+  ]);
+  assert.deepEqual(definitionStatus({}, ACCOUNTS), []);
+});
+
+test("definitionStatus refuses a definition whose account is not defined", () => {
+  const definitions = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
+  assert.throws(() => definitionStatus(definitions, []), /definition reviewer uses account claude-main that is not defined/);
 });

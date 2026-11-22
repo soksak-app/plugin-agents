@@ -70,3 +70,10 @@ export function resolveDefinition(definitions, accounts, id) {
 export function definitionStartParams(resolved) {
   return { program: resolved.program, args: [...resolved.args], directory: resolved.cwd, role: resolved.role };
 }
+
+// The value of the status agents.definitions: each definition with the program and arguments of its account, in the code point order
+// of its identifier. Refuses a definition whose account the accounts do not define, as resolveDefinition does.
+export function definitionStatus(definitions, accounts) {
+  parseDefinitions(definitions);
+  return Object.keys(definitions).sort().map((id) => resolveDefinition(definitions, accounts, id));
+}
