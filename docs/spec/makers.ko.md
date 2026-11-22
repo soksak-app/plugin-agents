@@ -36,7 +36,7 @@ Group을 가져오면 프로젝트에 다음 순서로 쓴다. 검사가 하나�
 1. `folders`의 각 항목을 files sidecar의 `createFolder`로 프로젝트 루트 기준으로 만든다. 각 `files` 항목은 상위 폴더가 생긴 뒤 files sidecar의 `write`로 쓴다. `folders` 밖의 `files` path는 거부한다.
 2. 각 agent는 정의 식별자 `<group id>-<slug>`를 얻는다. Slug는 agent `name`을 소문자로 바꾸고, `a-z`와 `0-9` 밖의 문자가 연속한 부분을 `-` 하나로 바꾸고, 양 끝의 `-`를 뗀 뒤, 전체 식별자를 64자로 자른 값이다. 빈 slug이거나 group 안에서 식별자가 겹치면 가져오기를 거부하고 agent 이름을 밝힌다.
 3. Agent의 계정은 `cli`가 agent의 `cli`와 같은 계정이다. 없으면 [definitions](definitions.ko.md#가져오기가-만든-계정)가 정한 대로 만든다.
-4. 각 agent의 정의는 role 파일을 가진다. `files`는 agent `path`와 같은 `files` 항목의 프로젝트 경로이고, `text`와 `ko`는 각각 그 파일을 밝히는 한 줄이다. 정의의 `cwd`는 창의 프로젝트 루트다.
+4. 각 agent의 정의는 role 파일을 가진다. `files`는 agent `path`와 같은 `files` 항목의 프로젝트 루트 기준 절대 경로이고(`core.role.define`이 절대 경로를 받는다), `text`와 `ko`는 각각 그 파일을 밝히는 한 줄이다. 정의의 `cwd`는 창의 프로젝트 루트다. 가져오기는 선언된 명령 `agents.group.import {group}`이며, 정의 section의 view가 연결된 maker group마다 실행한다.
 5. Group 기록은 `groups`에 agent 식별자를 member로 저장한다. 두 번째 가져오기는 group의 정의를 위의 값으로 맞춘다. 같은 값은 아무것도 바꾸지 않으며, 사람이 group에 더한 정의는 남는다.
 
 Model과 환경 변수는 적용하지 않는다. 저장된 정의에 그 값을 담는 member가 없기 때문이다([definitions](definitions.ko.md#key)).
