@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "settings", "extends", "data", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dependencies", "settings", "extends", "data", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -131,6 +131,10 @@ test("plugin.json declares the commands agents.account.define and agents.account
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
+test("plugin.json declares the sidecar of the files that the import writes, at the version that has createFolder", () => {
+  assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.12" });
+});
+
 test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select, agents.session.start and agents.session.show with their parameters and results", () => {
   assert.deepEqual(manifest.exposes.commands, [
     {
@@ -174,6 +178,12 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       description: "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
       params: { type: "object", properties: { id: { type: "string" }, cli: { type: "string" }, args: { type: "string" }, env: { type: "string" } }, required: ["id", "cli", "args", "env"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.group.import",
+      description: "Imports the maker group that a connected item of agents.makers contributes: writes its folders and files, defines its agents with core.role.define, and stores its groups, definitions and accounts. Refuses the import with the text of the rule before any write when a check fails.",
+      params: { type: "object", properties: { group: { type: "string" } }, required: ["group"] },
+      result: { type: "null" },
     },
     {
       name: "agents.account.remove",

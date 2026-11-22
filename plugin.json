@@ -31,6 +31,9 @@
       "height": "fill"
     }
   ],
+  "dependencies": {
+    "@soksak/sidecar-files": ">=0.0.12"
+  },
   "settings": {
     "terminalPlugin": {
       "label": "터미널 플러그인",
@@ -115,6 +118,12 @@
         "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
         "params": { "type": "object", "properties": { "id": { "type": "string" }, "cli": { "type": "string" }, "args": { "type": "string" }, "env": { "type": "string" } }, "required": ["id", "cli", "args", "env"] },
         "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.group.import",
+        "description": "Imports the maker group that a connected item of agents.makers contributes: writes its folders and files, defines its agents with core.role.define, and stores its groups, definitions and accounts. Refuses the import with the text of the rule before any write when a check fails.",
+        "params": { "type": "object", "properties": { "group": { "type": "string" } }, "required": ["group"] },
+        "result": { "type": "null" }
       },
       {
         "name": "agents.account.remove",

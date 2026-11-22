@@ -8,6 +8,9 @@ import { createGroup, parseGroups } from "./groups.js";
 import { parseAccounts } from "./accounts.js";
 import { defineDefinition, parseDefinitions, removeDefinition } from "./definition-records.js";
 import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
+import { createRequests } from "./makers-files.js";
+import { importGroup, storedChanges } from "./makers-import.js";
+import { parseMakerGroup } from "./makers.js";
 
 const CREATE = "agents.group.create";
 const DEFINE = "agents.definition.define";
@@ -15,6 +18,8 @@ const REMOVE = "agents.definition.remove";
 const KEY = "groups";
 const DEFINITIONS = "definitions";
 const ACCOUNTS = "accounts";
+const IMPORT = "agents.group.import";
+const SIDECAR = "@soksak/sidecar-files";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
 const losses = [];
@@ -149,6 +154,72 @@ const exposure = createExpose({
   report: (text) => reportError("agents.definitions", String(text)),
 }, () => start.declarations);
 
+// The files sidecar of the section writes the files of a maker group (A17-3). Its replies reach requests, which pairs each with its request.
+const files = bridge.runtime.sidecar(SIDECAR);
+const requests = createRequests((body) => files.send(start.surface, body, []));
+const onSidecar = (body) => {
+  if (!requests.receive(body)) reportError("agents.definitions", `files sidecar sent a message that no request waits for: ${JSON.stringify(body)}`);
+};
+const onSidecarFailure = (reason) => reportError("agents.definitions", `files sidecar failed: ${reason}`);
+
+// The connected maker groups of agents.makers, each drawn with a button that runs agents.group.import for it.
+let makers = [];
+function renderMakers() {
+  const rows = makers.map((entry) => {
+    const row = document.createElement("li");
+    const label = document.createElement("span");
+    label.textContent = entry.item.name;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "가져오기";
+    exposure.bind(button, IMPORT, { group: entry.item.id }).catch((error) => reportError("agents.definitions", `bind ${entry.item.id}: ${error?.message ?? error}`));
+    row.append(label, button);
+    return row;
+  });
+  document.getElementById("makers").replaceChildren(...rows);
+  document.getElementById("no-makers").hidden = rows.length > 0;
+}
+
+async function reloadMakers() {
+  try {
+    makers = await bridge.contributions("agents.makers");
+    renderMakers();
+  } catch (error) {
+    reportError("agents.definitions", `maker groups could not be read: ${error?.message ?? error}`);
+  }
+}
+
+// The command agents.group.import {group}: imports the maker group of the connected item with that identifier. The module's group() is
+// checked first; an invalid group marks its item invalid. A check or a refusal of core stops the import, and the stored values change
+// only for the keys that the import changes.
+async function importMaker({ group }) {
+  const entry = makers.find((candidate) => candidate.item.id === group);
+  if (entry === undefined) throw new Error(`maker group ${group} is not connected`);
+  let contributed;
+  try {
+    contributed = await (await import(entry.module)).group();
+    parseMakerGroup(contributed, entry.item.id);
+  } catch (error) {
+    entry.fail(error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+  const stored = {
+    groups: parseGroups((await bridge.runtime.data.get(KEY)) ?? {}),
+    definitions: parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {}),
+    accounts: parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []),
+  };
+  const next = await importGroup({
+    group: contributed,
+    stored,
+    plugin: await terminalPlugin(),
+    root: start.project.root,
+    requests,
+    define: (params) => bridge.calls.request("core.role.define", params),
+  });
+  for (const key of storedChanges(stored, next)) await bridge.runtime.data.change(key, () => next[key]);
+  return null;
+}
+
 // The forms enter their values through the inputs; Enter runs the command instead of submitting the page.
 form.addEventListener("submit", (event) => event.preventDefault());
 defineForm.addEventListener("submit", (event) => event.preventDefault());
@@ -156,6 +227,7 @@ await Promise.all([
   exposure.command(CREATE, create), bridge.commands.register(CREATE, create),
   exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
   exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
+  exposure.command(IMPORT, importMaker), bridge.commands.register(IMPORT, importMaker),
 ]);
 await exposure.mark(input, CREATE, {}, "name");
 await exposure.delegate(form);
@@ -168,3 +240,6 @@ await exposure.delegate(defineForm);
 bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); });
 bridge.runtime.data.on(() => { reload(); });
 await reload();
+await files.on(start.surface, onSidecar);
+await files.onFailure(start.surface, onSidecarFailure);
+await reloadMakers();
