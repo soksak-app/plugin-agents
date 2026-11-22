@@ -4,6 +4,7 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { accountFromText, accountRows, parseAccounts, removeAccount } from "./accounts.js";
+import { definitionsUsingAccount, parseDefinitions } from "./definition-records.js";
 
 const DEFINE = "agents.account.define";
 const REMOVE = "agents.account.remove";
@@ -65,8 +66,11 @@ async function define({ id, cli, args, env }) {
   return { id };
 }
 
-// The command agents.account.remove {id}: removes the account from the project.
+// The command agents.account.remove {id}: removes the account from the project. An account that a definition names is refused,
+// because the definition would have no program to start.
 async function remove({ id }) {
+  const users = definitionsUsingAccount(parseDefinitions((await bridge.runtime.data.get("definitions")) ?? {}), id);
+  if (users.length > 0) throw new Error(`account ${id} is used by definition ${users.join(", ")}`);
   await bridge.runtime.data.change(KEY, (current) => removeAccount(parseAccounts(current ?? []), id));
   return null;
 }

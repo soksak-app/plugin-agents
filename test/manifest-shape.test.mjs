@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends", "data", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "settings", "extends", "data", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -67,16 +67,30 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
   }
 });
 
-test("plugin.json declares no surface, host page, state module, contribution or settings yet", () => {
-  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings"]) {
+test("plugin.json declares no surface, host page, state module or contribution yet", () => {
+  for (const member of ["surface", "host", "hostOperations", "state", "contributes"]) {
     assert.equal(manifest[member], undefined, `plugin.json declares ${member}`);
   }
 });
 
 // The project data of the definitions section: the groups, one value per key (docs/spec/plugins.md#project-data, A4).
-test("plugin.json declares the project data keys groups and accounts, whose defaults are empty", () => {
+// The setting that names the plugin of each definition (A5): a string declared in settings, never a literal in the code.
+test("plugin.json declares the setting terminalPlugin, a string of at most 64 characters with the default terminal", () => {
+  assert.deepEqual(manifest.settings, {
+    terminalPlugin: {
+      label: "터미널 플러그인",
+      description: "에이전트 정의가 세션을 여는 터미널 플러그인의 식별자. 새 정의는 이 값을 plugin으로 저장한다.",
+      type: "string",
+      default: "terminal",
+      maxLength: 64,
+    },
+  });
+});
+
+test("plugin.json declares the project data keys groups, definitions and accounts, whose defaults are empty", () => {
   assert.deepEqual(manifest.data, {
     groups: { schema: { type: "object" }, default: {} },
+    definitions: { schema: { type: "object" }, default: {} },
     accounts: {
       schema: {
         type: "array",
@@ -127,13 +141,13 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
     },
     {
       name: "agents.definition.define",
-      description: "Defines the role of a definition in a group: defines the role with core.role.define, then adds its identifier to the members of the group. The files are the absolute paths, one per line. Returns the identifier.",
-      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" }, text: { type: "string" }, ko: { type: "string" }, files: { type: "string" } }, required: ["group", "id", "text", "ko", "files"] },
+      description: "Defines a definition in a group: checks the group, the membership and the account, defines the role with core.role.define, then stores the definition with the plugin of the setting terminalPlugin and adds its identifier to the members of the group. The files are the absolute paths, one per line; cwd is an absolute path. Returns the identifier.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" }, name: { type: "string" }, account: { type: "string" }, cwd: { type: "string" }, text: { type: "string" }, ko: { type: "string" }, files: { type: "string" } }, required: ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
     },
     {
       name: "agents.definition.remove",
-      description: "Removes the role of a definition from a group: removes the role with core.role.remove, then removes its identifier from the members of the group.",
+      description: "Removes a definition from a group: removes the role with core.role.remove, then removes the definition and its identifier from the members of the group.",
       params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" } }, required: ["group", "id"] },
       result: { type: "null" },
     },

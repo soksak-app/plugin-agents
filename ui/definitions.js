@@ -5,12 +5,16 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { createGroup, parseGroups } from "./groups.js";
+import { parseAccounts } from "./accounts.js";
+import { defineDefinition, parseDefinitions, removeDefinition } from "./definition-records.js";
 import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 
 const CREATE = "agents.group.create";
 const DEFINE = "agents.definition.define";
 const REMOVE = "agents.definition.remove";
 const KEY = "groups";
+const DEFINITIONS = "definitions";
+const ACCOUNTS = "accounts";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
 const losses = [];
@@ -31,9 +35,11 @@ const form = document.getElementById("create");
 const input = document.getElementById("name");
 const defineForm = document.getElementById("define");
 const defineGroup = document.getElementById("define-group");
+const defineAccount = document.getElementById("define-account");
 
-// The values of the two reads, each replaced when its watch delivers a new one: the groups of the project and core.roles.
+// The values of the reads, each replaced when its watch delivers a new one: the groups, the accounts of the project and core.roles.
 let groups = {};
+let accounts = [];
 let roles = null;
 
 // Draws each group with its roles, and the group choice of the define form. Nothing is drawn before core.roles has arrived.
@@ -67,6 +73,14 @@ function render() {
     return option;
   }));
   if (rows.some((row) => row.id === selected)) defineGroup.value = selected;
+  const chosen = defineAccount.value;
+  defineAccount.replaceChildren(...accounts.map((account) => {
+    const option = document.createElement("option");
+    option.value = account.id;
+    option.textContent = account.id;
+    return option;
+  }));
+  if (accounts.some((account) => account.id === chosen)) defineAccount.value = chosen;
   empty.hidden = rows.length > 0;
 }
 
@@ -74,6 +88,7 @@ function render() {
 async function reload() {
   try {
     groups = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
+    accounts = parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []);
     render();
   } catch (error) {
     reportError("agents.definitions", `groups could not be read: ${error?.message ?? error}`);
@@ -90,22 +105,37 @@ async function create({ name }) {
   return { id };
 }
 
-// The command agents.definition.define {group, id, text, ko, files}: checks the group and the membership before core is called,
-// defines the role with core.role.define, then adds its identifier to the members of the group. A refusal of core writes no member.
-async function define({ group, id, text, ko, files }) {
+// The plugin that runs a definition's session: the value of the setting terminalPlugin, read at the time of the definition.
+async function terminalPlugin() {
+  const settings = await bridge.runtime.settings.read();
+  if (typeof settings?.terminalPlugin !== "string") throw new Error("the setting terminalPlugin is not a text");
+  return settings.terminalPlugin;
+}
+
+// The command agents.definition.define {group, id, name, account, cwd, text, ko, files}: checks the group, the membership, the account
+// and the record before core is called, defines the role with core.role.define, then stores the record and adds its identifier to the
+// members of the group. A refusal of core writes nothing.
+async function define({ group, id, name, account, cwd, text, ko, files }) {
   const current = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
   addMember(current, group, id);
+  const accounts = parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []);
+  const plugin = await terminalPlugin();
+  defineDefinition(parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {}), accounts, { id, name, account, plugin, cwd });
   const stored = await bridge.calls.request("core.role.define", { id, text, ko, files: parseFiles(files) });
+  await bridge.runtime.data.change(DEFINITIONS, (value) => defineDefinition(value, accounts, { id: stored.id, name, account, plugin, cwd }));
   await bridge.runtime.data.change(KEY, (value) => addMember(value, group, stored.id));
   return { id: stored.id };
 }
 
-// The command agents.definition.remove {group, id}: checks the membership, removes the role with core.role.remove, then removes
-// the identifier from the members of the group. A refusal of core keeps the member.
+// The command agents.definition.remove {group, id}: checks the membership, removes the role with core.role.remove, then removes the
+// record and the identifier from the members of the group. A refusal of core keeps the record and the member.
 async function remove({ group, id }) {
   const current = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
   removeMember(current, group, id);
+  const records = parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {});
+  removeDefinition(records, id);
   await bridge.calls.request("core.role.remove", { id });
+  await bridge.runtime.data.change(DEFINITIONS, (value) => removeDefinition(value, id));
   await bridge.runtime.data.change(KEY, (value) => removeMember(value, group, id));
   return null;
 }
@@ -130,7 +160,8 @@ await Promise.all([
 await exposure.mark(input, CREATE, {}, "name");
 await exposure.delegate(form);
 await exposure.mark(defineGroup, DEFINE, {}, "group");
-for (const [name, element] of [["id", "define-id"], ["text", "define-text"], ["ko", "define-ko"], ["files", "define-files"]]) {
+await exposure.mark(defineAccount, DEFINE, {}, "account");
+for (const [name, element] of [["id", "define-id"], ["name", "define-name"], ["cwd", "define-cwd"], ["text", "define-text"], ["ko", "define-ko"], ["files", "define-files"]]) {
   await exposure.mark(document.getElementById(element), DEFINE, {}, name);
 }
 await exposure.delegate(defineForm);
