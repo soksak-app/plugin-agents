@@ -37,5 +37,15 @@
   },
   "data": {
     "groups": { "schema": { "type": "object" }, "default": {} }
+  },
+  "exposes": {
+    "commands": [
+      {
+        "name": "agents.group.create",
+        "description": "Creates an empty group of the project with the given name and returns its identifier.",
+        "params": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] },
+        "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      }
+    ]
   }
 }

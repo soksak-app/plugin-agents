@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends", "data"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "extends", "data", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -62,7 +62,7 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
 });
 
 test("plugin.json declares no surface, host page, state module, contribution or settings yet", () => {
-  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings", "exposes"]) {
+  for (const member of ["surface", "host", "hostOperations", "state", "contributes", "settings"]) {
     assert.equal(manifest[member], undefined, `plugin.json declares ${member}`);
   }
 });
@@ -72,6 +72,19 @@ test("plugin.json declares the project data key groups, an object whose default 
   assert.deepEqual(manifest.data, {
     groups: { schema: { type: "object" }, default: {} },
   });
+});
+
+// The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
+// identifier is made by the page and returned in the result.
+test("plugin.json declares the command agents.group.create with the name as its parameter and the identifier as its result", () => {
+  assert.deepEqual(manifest.exposes.commands, [
+    {
+      name: "agents.group.create",
+      description: "Creates an empty group of the project with the given name and returns its identifier.",
+      params: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+  ]);
 });
 
 // The extension point of the maker plugins (core docs/spec/plugins.md#extension-points): the provider declares it in extends,
