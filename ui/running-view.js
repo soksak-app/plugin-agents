@@ -43,6 +43,12 @@ const exposure = createExpose({
 let grid = null;
 let activity = {};
 
+// The program detail of a row: its state, and its process id when the tab runs a program (core docs/spec/program-state.md).
+function programDetail(program) {
+  if (program === null) return "-";
+  return program.pid === null ? program.state : `${program.state} (pid ${program.pid})`;
+}
+
 // Draws the tree: a list item per group and card, and a button per agent tab that selects it.
 async function render() {
   if (grid === null) return;
@@ -60,7 +66,7 @@ async function render() {
         const row = document.createElement("button");
         row.type = "button";
         row.style.paddingLeft = `${depth * 12}px`;
-        row.textContent = `${node.name} · ${node.activity ?? "-"}`;
+        row.textContent = `${node.name} · ${node.activity ?? "-"} · ${programDetail(node.program)}`;
         items.push(row);
         // The row runs the command with its tab; the binder connects the element to the declared command.
         exposure.bind(row, SELECT, { tab: node.id }).catch((error) => reportError("agents.running", `bind ${node.id}: ${error?.message ?? error}`));

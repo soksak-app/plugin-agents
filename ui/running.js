@@ -4,6 +4,22 @@
 // for the tab. Items of one level are in drawn order: by the top edge, then by the left edge.
 
 const ACTIVITIES = ["attention", "failed", "running", "idle"];
+const PROGRAM_STATES = ["idle", "working", "blocked"];
+
+// The program state of a tab record from core.grid (core docs/spec/program-state.md#value): null, or an object whose only members are
+// state, one of PROGRAM_STATES, and pid, a positive integer or null. Throws with the text of the rule when the member is missing or not of that form.
+function programState(tab) {
+  if (!Object.hasOwn(tab, "program")) throw new Error(`core.grid tab ${tab.tab} has no program member`);
+  const { program } = tab;
+  if (program === null) return null;
+  const keys = program !== null && typeof program === "object" ? Object.keys(program).sort() : [];
+  const shaped = keys.length === 2 && keys[0] === "pid" && keys[1] === "state";
+  const pidOk = program?.pid === null || (Number.isInteger(program?.pid) && program.pid > 0);
+  if (!shaped || !PROGRAM_STATES.includes(program.state) || !pidOk) {
+    throw new Error(`program of tab ${tab.tab} must be null or an object with state idle, working or blocked and pid an integer or null`);
+  }
+  return { state: program.state, pid: program.pid };
+}
 
 // The agent tab of a tab record, or null when the tab runs no agent CLI.
 function agentName(tab) {
@@ -15,7 +31,8 @@ function agentName(tab) {
 
 /**
  * Returns the tree of the agent tabs of grid, a core.grid value, with activities, the core.activity tabs map of tab identifier to
- * activity. Each node is {kind: "card" | "group", id, children} or {kind: "tab", id, name, activity}, and a card or a group with
+ * activity. Each node is {kind: "card" | "group", id, children} or {kind: "tab", id, name, activity, program}, where program is the
+ * program state of the tab from core.grid (null when the tab has none), and a card or a group with
  * no agent tab is left out. Throws with the text of the rule when grid or an activity is not of the form the spec states.
  */
 export function runningTree(grid, activities) {
@@ -34,7 +51,8 @@ export function runningTree(grid, activities) {
     if (!Array.isArray(card.tabs)) throw new Error(`card ${card.id} has no tabs list`);
     return card.tabs.flatMap((tab) => {
       const name = agentName(tab);
-      return name === null ? [] : [{ kind: "tab", id: tab.tab, name, activity: activities[tab.tab] ?? null }];
+      const program = programState(tab);
+      return name === null ? [] : [{ kind: "tab", id: tab.tab, name, activity: activities[tab.tab] ?? null, program }];
     });
   };
 
