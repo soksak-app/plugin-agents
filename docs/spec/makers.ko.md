@@ -27,7 +27,7 @@ Group object는 다음 member를 가진다. 필수 member는 반드시 있어야
 
 Group의 산출물은 `folders`의 폴더에만 간다. Group의 rule은 이 위치를 밝힌다. 예를 들어 plan은 `.superpowers/plans/`에 둔다.
 
-Group을 기여하는 maker plugin은 moai(`.moai/`, claude 전용, agent마다 web view 포트 하나), harness(`.harness/`), superpowers(`.superpowers/`, 위치는 rule에 적는다)다. 각 maker plugin은 자신의 파일을 교정하고, pack할 때 그 파일로 `files`를 만든다. Agents plugin은 `files`의 항목을 쓰며 maker의 다른 파일을 읽지 않는다.
+Group을 기여하는 maker plugin은 moai(`.moai/`, claude 전용, agent마다 web view 포트 하나), harness(`.harness/`), superpowers(`.superpowers/`, 위치는 rule에 적는다)다. 각 maker plugin은 자신의 파일을 교정하고, pack할 때 그 파일로 `files`를 만든다. 가져오기는 `files`의 path에만 쓰며 다른 파일은 쓰지 않는다. `files` 밖의 프로젝트 파일을 덮어쓰거나 지우지 않는다. `folders`에는 `.claude/`를 넣을 수 있다. Claude Code가 그 아래의 agent와 skill을 읽으며, 가져오기는 그 아래 path를 거부하지 않는다.
 
 ## 가져오기
 

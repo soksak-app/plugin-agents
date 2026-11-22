@@ -27,7 +27,7 @@ The group object has these members. Required members must be present; optional m
 
 The outputs of a group go only to the folders in `folders`. The rules of a group name these locations, for example `.superpowers/plans/` for plans.
 
-The maker plugins that contribute groups are moai (`.moai/`, claude only, one port per agent for its web view), harness (`.harness/`) and superpowers (`.superpowers/`, locations in the rules). Each maker plugin corrects its own files and builds `files` from them when it is packed; the agents plugin writes the entries of `files` and reads no other file of the maker.
+The maker plugins that contribute groups are moai (`.moai/`, claude only, one port per agent for its web view), harness (`.harness/`) and superpowers (`.superpowers/`, locations in the rules). Each maker plugin corrects its own files and builds `files` from them when it is packed. The import writes exactly the paths of `files` and no other file: it never overwrites or removes a project file outside `files`. `folders` may name `.claude/`, which Claude Code reads for agents and skills, and the import does not refuse a path under it.
 
 ## Import
 

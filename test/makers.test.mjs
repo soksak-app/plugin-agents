@@ -91,3 +91,14 @@ test("importPlan refuses an agent whose identifier is a member of another group,
   const groups = { other: { name: "Other", members: ["moai-backend-expert"] } };
   assert.throws(() => importPlan({ group: group(), groups, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" }), /role moai-backend-expert is already in group other/);
 });
+
+test("parseMakerGroup accepts a folder under .claude/ with its files, and the import plan writes only those files", () => {
+  const claude = group({
+    folders: [".claude/", ".moai/"],
+    agents: [{ name: "Reviewer", path: ".claude/agents/reviewer.md", cli: "claude" }],
+    files: [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n" }],
+  });
+  assert.equal(parseMakerGroup(claude, "moai").folders[0], ".claude/");
+  const plan = importPlan({ group: claude, groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
+  assert.deepEqual(plan.files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n" }]);
+});
