@@ -72,7 +72,7 @@ test("plugin.json declares no surface, host page, state module, contribution or 
 test("plugin.json declares the extension point agents.makers in extends with its version and schema", () => {
   assert.deepEqual(manifest.extends, {
     makers: {
-      version: "0.1.0",
+      version: "0.0.1",
       schema: {
         type: "object",
         properties: {
