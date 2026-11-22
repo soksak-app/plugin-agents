@@ -30,3 +30,4 @@
 - A18: Closed. 가져오기는 `model`을 적용하지 않는다. Room은 model이 필요 없고, 저장된 정의에는 그것을 담을 member가 없다. `variables`와 `port`도 적용하지 않는다. 이를 읽는 쪽이 없기 때문이다. 이유는 `docs/features.ko.md`에 있다.
 - A17-4: 두 번째 가져오기는 `test/makers-import.test.mjs`가 검사한다. 같은 가져오기는 파일을 쓰지 않고 저장 값을 바꾸지 않으며, 바뀐 파일은 현재 version과 함께 쓴다. Page는 `storedChanges`가 밝힌 key만 쓴다.
 - A19: Maker group의 `files` 항목이 선택 boolean `executable`을 받는다. 가져오기는 이를 files sidecar의 `write`에 넘기며, text가 현재인 실행 가능 항목도 다시 써서 mode가 0755가 되게 한다. Boolean이 아닌 `executable`은 group을 invalid로 만들고, `plugin.json`은 `@soksak/sidecar-files`를 `>=0.0.13`으로 선언한다. Test: `test/makers.test.mjs`, `test/makers-files.test.mjs`, `test/manifest-shape.test.mjs`.
+- A20: `release.yml`이 main push마다 검사하고, tag가 없으면 `package.json`의 version을 `make pack`으로 release한다.
