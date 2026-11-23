@@ -63,6 +63,7 @@ function render() {
     return;
   }
   empty.hidden = tree.length > 0;
+  list.hidden = tree.length === 0;
 }
 
 // The command agents.running.select {tab}: selects the tab of the row in the window.

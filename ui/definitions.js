@@ -57,7 +57,7 @@ const treeView = () => tree ??= createTreeView(list, {
   exposure,
   rowOf: () => ({ name: "agents.definitions.row", command: null, params: null }),
   picked: () => {},
-  detail: ({ member }) => (member.defined ? member.text : "정의되지 않음"),
+  detail: ({ member }) => (member.defined ? null : "정의되지 않음"),
   menu: ({ group, member }) => [{ label: "삭제", command: REMOVE, params: { group, id: member.id } }],
   failed: (error) => reportError("agents.definitions", `row: ${error?.message ?? error}`),
 });
@@ -152,18 +152,9 @@ const onSidecar = (body) => {
 };
 const onSidecarFailure = (reason) => reportError("agents.definitions", `files sidecar failed: ${reason}`);
 
-// The connected maker groups of agents.makers, each drawn by its name. A group is listed (docs/spec/makers.md#listing) on load and on each
-// change of core.contributions, and written by the command agents.group.write {group}.
+// The connected maker groups of agents.makers. A group is listed (docs/spec/makers.md#listing) on load and on each change of
+// core.contributions, and written by the command agents.group.write {group}; its stored group shows in the tree.
 let makers = [];
-function renderMakers() {
-  const rows = makers.map((entry) => {
-    const row = document.createElement("li");
-    row.textContent = entry.item.name;
-    return row;
-  });
-  document.getElementById("makers").replaceChildren(...rows);
-  document.getElementById("no-makers").hidden = rows.length > 0;
-}
 
 // The stored values that a listing reads: the groups, the definitions and the accounts of the project.
 async function readStored() {
@@ -203,7 +194,6 @@ let listing = Promise.resolve();
 async function reloadMakers() {
   try {
     makers = await bridge.contributions(MAKERS_POINT);
-    renderMakers();
   } catch (error) {
     reportError("agents.definitions", `maker groups could not be read: ${error?.message ?? error}`);
     return;

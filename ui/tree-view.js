@@ -13,8 +13,12 @@ function themeStyles() {
   const mode = document.documentElement.dataset.mode === "light" ? "light" : "dark";
   return {
     ...themeToTreeStyles({ type: mode, bg: style.getPropertyValue("--card").trim(), fg: style.getPropertyValue("--fg").trim() }),
-    "--trees-font-size-override": "12px",
-    "--trees-font-family-override": "var(--font)",
+    "--trees-font-size-override": getComputedStyle(document.body).fontSize,
+    "--trees-font-family-override": getComputedStyle(document.body).fontFamily,
+    // The first row starts at the left edge of the section, as in the files tree.
+    "--trees-padding-inline-override": "0px",
+    "--trees-item-margin-x-override": "0px",
+    "--trees-item-padding-x-override": "0px",
     "--trees-bg-override": "var(--card)",
     "--trees-bg-muted-override": "var(--inset)",
     "--trees-fg-override": "var(--fg)",
@@ -39,6 +43,10 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
     density: "compact",
     itemHeight: ROW_HEIGHT,
     initialExpansion: "open",
+    // The rows are agents and definitions, not files, so the library draws no file icon.
+    icons: { set: "none" },
+    // A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set; the row hides it.
+    unsafeCSS: "[data-item-type='file'] > [data-item-section='icon']{display:none}",
     composition: {
       contextMenu: {
         triggerMode: "right-click",

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A30: The trees draw no file icon, use the text of the section and start at its left edge; a definition row shows only `정의되지 않음` at its end, so its name keeps the width; the definitions section lists the maker groups only in the tree; the running agents section shows its empty text in place of the tree.
 - A30: The definitions section draws its groups with the tree library; a right click on a definition opens a menu that removes it.
 - A29-2: The running agents section draws its tree with the bundled `@pierre/trees`; names that repeat among siblings carry `#1`, `#2`.
 - A1: The repository holds the manifest `plugin.json` with the identifier `agents`, the name, the description and the sections `agents.running` and `agents.definitions`, whose pages `ui/running.html` and `ui/definitions.html` are empty documents until A3 and A4. `test/manifest-shape.test.mjs` checks the declaration, and `test/install.test.mjs` and `test/test-script.test.mjs` check the Makefile and the test command. The version is 0.0.0 and is not released.

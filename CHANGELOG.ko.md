@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A30: tree는 file icon을 그리지 않고 섹션의 글꼴을 쓰며 섹션 왼쪽 끝에서 시작한다. 정의 행은 끝에 `정의되지 않음`만 보여 이름이 폭을 유지한다. 정의 섹션은 maker group을 tree에만 보이고, 실행 중인 에이전트 섹션은 tree 자리에 빈 상태 문구를 보인다.
 - A30: 에이전트 정의 섹션은 tree library로 group을 그리며, 정의를 오른쪽 클릭하면 그것을 삭제하는 메뉴가 열린다.
 - A29-2: 실행 중인 에이전트 섹션은 bundle한 `@pierre/trees`로 tree를 그리며, 형제 사이에서 반복되는 이름에는 `#1`, `#2`가 붙는다.
 - A1: Repository가 식별자 `agents`, 이름, 설명과 section `agents.running`, `agents.definitions`를 가진 manifest `plugin.json`을 갖는다. 두 section의 page `ui/running.html`과 `ui/definitions.html`은 A3과 A4 전까지 빈 document다. `test/manifest-shape.test.mjs`가 선언을 검사하고, `test/install.test.mjs`와 `test/test-script.test.mjs`가 Makefile과 test 명령을 검사한다. Version은 0.0.0이며 release하지 않았다.
