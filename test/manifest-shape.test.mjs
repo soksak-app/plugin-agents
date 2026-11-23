@@ -24,18 +24,12 @@ test("plugin.json declares the identifier agents and a description of one to two
   assert.ok(manifest.description.length >= 1 && manifest.description.length <= 200, "description length is outside 1 to 200");
 });
 
-test("plugin.json declares the running agents, the agent accounts and the agent definitions as view sections", () => {
+test("plugin.json declares the running agents and the agent definitions as view sections, and no accounts section", () => {
   assert.deepEqual(manifest.sections, [
     {
       id: "agents.running",
       name: "실행 중인 에이전트",
       composition: { kind: "view", page: "ui/running.html" },
-      height: "fill",
-    },
-    {
-      id: "agents.accounts",
-      name: "에이전트 계정",
-      composition: { kind: "view", page: "ui/accounts.html" },
       height: "fill",
     },
     {

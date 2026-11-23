@@ -17,8 +17,9 @@ const SCROLLBAR = `
 ::-webkit-scrollbar-thumb:hover{background:rgba(127,127,127,0.42)}
 ::-webkit-scrollbar-corner{background:transparent}
 `;
-// A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set; the row hides it.
-const NO_FILE_ICON = "[data-item-type='file'] > [data-item-section='icon']{display:none}";
+// A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set. The row hides the icon and
+// keeps its place, so the text of a row starts one level right of the text of its folder, as in the files tree.
+const NO_FILE_ICON = "[data-item-type='file'] > [data-item-section='icon']{visibility:hidden}";
 
 /** The tree colors. Every color is a var() of the app tokens, so no default color of the library shows. */
 function themeStyles() {

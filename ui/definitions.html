@@ -9,40 +9,15 @@
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --text: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c; } }
     :root[data-theme="dark"] { --text: #f5f5f7; --muted: #a1a1a6; --line: #3a3a3c; }
     body { margin: 0; padding: 12px 16px; background: transparent; color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
-    #groups { height: 50vh; min-height: 48px; margin: 0 -16px; }
+    #groups { height: calc(100vh - 24px); min-height: 48px; margin: 0 -16px; }
     ul { margin: 0 0 12px; padding: 0; list-style: none; }
     li { padding: 6px 0; border-bottom: 1px solid var(--line); }
     p { margin: 0 0 12px; color: var(--muted); }
-    form { display: flex; gap: 8px; }
-    input, select, textarea { min-width: 0; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
-    input, select { flex: 1; }
-    textarea { flex: 1; resize: vertical; }
-    button { font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
-    #define { flex-direction: column; margin-top: 12px; }
-    #define > div { display: flex; gap: 8px; }
   </style>
 </head>
 <body>
   <div id="groups"></div>
   <p id="empty">그룹이 없어요.</p>
-  <form id="create">
-    <input id="name" type="text" maxlength="40" placeholder="새 그룹 이름" aria-label="새 그룹 이름">
-  </form>
-  <form id="define">
-    <div>
-      <select id="define-group" aria-label="역할을 넣을 그룹"></select>
-      <input id="define-id" type="text" placeholder="역할 식별자 (예: reviewer)" aria-label="역할 식별자">
-    </div>
-    <div>
-      <input id="define-name" type="text" maxlength="40" placeholder="정의 이름" aria-label="정의 이름">
-      <select id="define-account" aria-label="에이전트 계정"></select>
-    </div>
-    <input id="define-cwd" type="text" placeholder="작업 폴더의 절대 경로" aria-label="작업 폴더">
-    <input id="define-text" type="text" placeholder="지시 본문" aria-label="지시 본문">
-    <input id="define-ko" type="text" placeholder="한국어 지시" aria-label="한국어 지시">
-    <textarea id="define-files" rows="3" placeholder="읽을 파일의 절대 경로, 한 줄에 하나" aria-label="읽을 파일의 절대 경로"></textarea>
-    <div><button type="submit">역할 정의</button></div>
-  </form>
   <script type="module" src="definitions.js"></script>
 </body>
 </html>

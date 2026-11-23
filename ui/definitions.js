@@ -39,15 +39,9 @@ if (start === null || typeof start !== "object") throw new Error("the definition
 
 const list = document.getElementById("groups");
 const empty = document.getElementById("empty");
-const form = document.getElementById("create");
-const input = document.getElementById("name");
-const defineForm = document.getElementById("define");
-const defineGroup = document.getElementById("define-group");
-const defineAccount = document.getElementById("define-account");
 
-// The values of the reads, each replaced when its watch delivers a new one: the groups, the accounts of the project and core.roles.
+// The values of the reads, each replaced when its watch delivers a new one: the groups of the project and core.roles.
 let groups = {};
-let accounts = [];
 let roles = null;
 
 // The tree of the groups and their definitions, drawn by the tree library (tree-view.js) once the binder exists. A right click on a
@@ -62,27 +56,11 @@ const treeView = () => tree ??= createTreeView(list, {
   failed: (error) => reportError("agents.definitions", `row: ${error?.message ?? error}`),
 });
 
-// Draws each group with its roles, and the group choice of the define form. Nothing is drawn before core.roles has arrived.
+// Draws each group with its roles. Nothing is drawn before core.roles has arrived.
 function render() {
   if (roles === null) return;
   const rows = roleRows(groups, roles);
   treeView().show(definitionNodes(rows));
-  const selected = defineGroup.value;
-  defineGroup.replaceChildren(...rows.map((row) => {
-    const option = document.createElement("option");
-    option.value = row.id;
-    option.textContent = row.name;
-    return option;
-  }));
-  if (rows.some((row) => row.id === selected)) defineGroup.value = selected;
-  const chosen = defineAccount.value;
-  defineAccount.replaceChildren(...accounts.map((account) => {
-    const option = document.createElement("option");
-    option.value = account.id;
-    option.textContent = account.id;
-    return option;
-  }));
-  if (accounts.some((account) => account.id === chosen)) defineAccount.value = chosen;
   empty.hidden = rows.length > 0;
 }
 
@@ -90,7 +68,6 @@ function render() {
 async function reload() {
   try {
     groups = parseGroups((await bridge.runtime.data.get(KEY)) ?? {});
-    accounts = parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []);
     render();
   } catch (error) {
     reportError("agents.definitions", `groups could not be read: ${error?.message ?? error}`);
@@ -218,23 +195,13 @@ async function writeMaker({ group }) {
   return writeGroup({ group: contributed, root: start.project.root, requests, define: (params) => bridge.calls.request("core.role.define", params) });
 }
 
-// The forms enter their values through the inputs; Enter runs the command instead of submitting the page.
-form.addEventListener("submit", (event) => event.preventDefault());
-defineForm.addEventListener("submit", (event) => event.preventDefault());
+// The commands that create a group and define a role take their values from their caller; the section draws no form (A28).
 await Promise.all([
   exposure.command(CREATE, create), bridge.commands.register(CREATE, create),
   exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
   exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
   exposure.command(WRITE, writeMaker), bridge.commands.register(WRITE, writeMaker),
 ]);
-await exposure.mark(input, CREATE, {}, "name");
-await exposure.delegate(form);
-await exposure.mark(defineGroup, DEFINE, {}, "group");
-await exposure.mark(defineAccount, DEFINE, {}, "account");
-for (const [name, element] of [["id", "define-id"], ["name", "define-name"], ["cwd", "define-cwd"], ["text", "define-text"], ["ko", "define-ko"], ["files", "define-files"]]) {
-  await exposure.mark(document.getElementById(element), DEFINE, {}, name);
-}
-await exposure.delegate(defineForm);
 bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); });
 bridge.runtime.data.on(() => { reload(); });
 bridge.runtime.status.watch("core.contributions", () => { reloadMakers(); });

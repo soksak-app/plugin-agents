@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A26-1: 사이드바는 계정 섹션과 정의 form을 보이지 않는다. 정의 tree가 섹션을 채우며, 정의 행은 files tree처럼 file icon의 자리를 유지한다.
 - A30: tree는 files tree의 글꼴, 행 높이, gutter, scroll bar, token 색을 쓰며 섹션의 폭 전체를 차지한다.
 - A30: tree는 file icon을 그리지 않고 섹션의 글꼴을 쓰며 섹션 왼쪽 끝에서 시작한다. 정의 행은 끝에 `정의되지 않음`만 보여 이름이 폭을 유지한다. 정의 섹션은 maker group을 tree에만 보이고, 실행 중인 에이전트 섹션은 tree 자리에 빈 상태 문구를 보인다.
 - A30: 에이전트 정의 섹션은 tree library로 group을 그리며, 정의를 오른쪽 클릭하면 그것을 삭제하는 메뉴가 열린다.
