@@ -35,3 +35,4 @@
 - A22: `engines.soksak` is `^0.0.47`, and the version is 0.0.2.
 - A23: The agents pages build the exposure port with `ui/exposure-port.js`, which carries `changed` and `report` from `bridge.exposure`, so `createExpose` accepts it and the pages register their commands; `test/exposure-port.test.mjs` runs the `createExpose` of `@soksak/plugin-api`. The version is 0.0.3.
 - A24: The definitions page reads the maker groups with the local point name `makers`, which core accepts; the full name `agents.makers` was refused, so no maker group was connected.
+- A25: The running agents section lists only running sessions; the definition start list and the command `agents.session.start` left the plugin, because members are invited in the clubhouse room.

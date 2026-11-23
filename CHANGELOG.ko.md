@@ -35,3 +35,4 @@
 - A22: `engines.soksak`은 `^0.0.47`이고, version은 0.0.2다.
 - A23: Agents page가 `ui/exposure-port.js`로 exposure port를 만들고, 이 port가 `bridge.exposure`의 `changed`와 `report`를 가지므로 `createExpose`가 받아들이고 page가 command를 등록한다. `test/exposure-port.test.mjs`가 `@soksak/plugin-api`의 `createExpose`를 실행한다. Version은 0.0.3이다.
 - A24: Definitions page가 core가 받아들이는 local point 이름 `makers`로 maker group을 읽는다. 전체 이름 `agents.makers`는 거부되어 어떤 maker group도 연결되지 않았다.
+- A25: 실행 중인 에이전트 섹션은 실행 중인 session만 나열한다. member는 clubhouse 방에서 초대하므로 정의 시작 목록과 `agents.session.start` 명령이 plugin에서 빠졌다.

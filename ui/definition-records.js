@@ -65,8 +65,3 @@ export function resolveDefinition(definitions, accounts, id) {
   return { id, name: record.name, account: record.account, plugin: record.plugin, program: account.cli, args: [...account.args], role: record.role, cwd: record.cwd };
 }
 
-// The start parameters of the terminal session of a resolved definition (resolveDefinition): the program with its arguments, the
-// directory of the definition and its role. The role names the core role of the definition, and the program is the one of the account.
-export function definitionStartParams(resolved) {
-  return { program: resolved.program, args: [...resolved.args], directory: resolved.cwd, role: resolved.role };
-}

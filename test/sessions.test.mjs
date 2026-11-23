@@ -3,9 +3,8 @@
 // recording function that answers the declared shapes (core docs/spec/plugins.md#owned-sessions).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { showSession, startSession } from "../ui/sessions.js";
+import { showSession } from "../ui/sessions.js";
 
-const SIZE = { width: 480, height: 320, scale: 2 };
 
 // A call function that records each core command and answers with reply(name, params).
 function recorder(reply = () => null) {
@@ -16,34 +15,6 @@ function recorder(reply = () => null) {
   };
   return { call, calls };
 }
-
-test("startSession opens a session of the plugin with core.session.open and returns its identifier", async () => {
-  const { call, calls } = recorder(() => ({ session: "s-1" }));
-  const session = await startSession(call, { plugin: "example.terminal", params: { program: "claude", args: [] }, size: SIZE });
-  assert.equal(session, "s-1");
-  assert.deepEqual(calls, [{ name: "core.session.open", params: { plugin: "example.terminal", params: { program: "claude", args: [] }, size: SIZE } }]);
-});
-
-test("startSession refuses a plugin that is not a non-empty text, params that are not an object, and a size that is not positive", async () => {
-  const { call, calls } = recorder(() => ({ session: "s-1" }));
-  await assert.rejects(startSession(call, { plugin: "", params: {}, size: SIZE }), /plugin must be a non-empty text/);
-  await assert.rejects(startSession(call, { plugin: "p", params: null, size: SIZE }), /params must be an object/);
-  await assert.rejects(startSession(call, { plugin: "p", params: {}, size: { ...SIZE, width: 0 } }), /size width, height and scale must be positive numbers/);
-  await assert.rejects(startSession(call, { plugin: "p", params: {}, size: { ...SIZE, scale: Number.NaN } }), /size width, height and scale must be positive numbers/);
-  assert.deepEqual(calls, []);
-});
-
-test("startSession rejects a reply without a session identifier instead of returning an undefined session", async () => {
-  const { call } = recorder(() => ({ ok: true }));
-  await assert.rejects(startSession(call, { plugin: "p", params: {}, size: SIZE }), /core.session.open reply has no session/);
-});
-
-test("startSession passes the refusal of core unchanged", async () => {
-  const { call } = recorder(() => {
-    throw new Error("plugin example.terminal declares no sessions");
-  });
-  await assert.rejects(startSession(call, { plugin: "example.terminal", params: {}, size: SIZE }), /^Error: plugin example\.terminal declares no sessions$/);
-});
 
 test("showSession opens a tab of the session's plugin in the current card with the session as its params", async () => {
   const { call, calls } = recorder(() => ({ card: "c-1", tab: "t-1" }));

@@ -102,12 +102,6 @@
         "result": { "type": "null" }
       },
       {
-        "name": "agents.session.start",
-        "description": "Starts a session of the plugin with the params as an owned session of this section, with core.session.open. No tab holds it until agents.session.show shows it. Returns the session identifier.",
-        "params": { "type": "object", "properties": { "plugin": { "type": "string" }, "params": { "type": "object" } }, "required": ["plugin", "params"] },
-        "result": { "type": "object", "properties": { "session": { "type": "string" } }, "required": ["session"] }
-      },
-      {
         "name": "agents.session.show",
         "description": "Shows a session that core.sessions lists as open in the current card of the window, with core.layout.open, so that the tab attaches to the session.",
         "params": { "type": "object", "properties": { "session": { "type": "string" } }, "required": ["session"] },

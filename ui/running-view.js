@@ -4,13 +4,10 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
-import { parseAccounts } from "./accounts.js";
-import { parseDefinitions, definitionStartParams, resolveDefinition } from "./definition-records.js";
 import { runningTree } from "./running.js";
-import { showSession, startSession } from "./sessions.js";
+import { showSession } from "./sessions.js";
 
 const SELECT = "agents.running.select";
-const START = "agents.session.start";
 const SHOW = "agents.session.show";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
@@ -28,8 +25,6 @@ if (start === null || typeof start !== "object") throw new Error("the running ag
 
 const list = document.getElementById("tree");
 const empty = document.getElementById("empty");
-const definitionList = document.getElementById("definitions");
-const noDefinitions = document.getElementById("no-definitions");
 
 const exposure = createExpose(exposurePort(bridge, "agents.running", reportError), () => start.declarations);
 
@@ -90,14 +85,6 @@ let sessions = null;
 // The core command call of this view: the view may call the core commands (core docs/spec/native-surfaces.md#view-surfaces).
 const callCore = (name, params) => bridge.calls.request(name, params);
 
-// The size of a new session: the view in points and the device scale. A tab that shows the session resizes it to its card.
-const viewSize = () => ({ width: window.innerWidth, height: window.innerHeight, scale: window.devicePixelRatio });
-
-// The command agents.session.start {plugin, params}: starts an owned session that no tab holds.
-async function startAgentSession({ plugin, params }) {
-  return { session: await startSession(callCore, { plugin, params, size: viewSize() }) };
-}
-
 // The command agents.session.show {session}: shows the open session in the current card.
 async function showAgentSession({ session }) {
   await showSession(callCore, { session }, sessions);
@@ -106,40 +93,8 @@ async function showAgentSession({ session }) {
 
 await Promise.all([
   exposure.command(SELECT, select), bridge.commands.register(SELECT, select),
-  exposure.command(START, startAgentSession), bridge.commands.register(START, startAgentSession),
   exposure.command(SHOW, showAgentSession), bridge.commands.register(SHOW, showAgentSession),
 ]);
 bridge.runtime.status.watch("core.grid", (value) => { grid = value; render(); });
 bridge.runtime.status.watch("core.activity", (value) => { activity = value?.tabs ?? {}; render(); });
 bridge.runtime.status.watch("core.sessions", (value) => { sessions = value; });
-
-// The definitions and the accounts of the project (A5), replaced when the project data changes. A row starts the agent of its
-// definition through agents.session.start with the parameters that definitionStartParams gives; the binder binds each row to them.
-let definitionRecords = {};
-let accountList = [];
-
-function renderDefinitions() {
-  const ids = Object.keys(definitionRecords).sort();
-  const rows = ids.map((id) => resolveDefinition(definitionRecords, accountList, id));
-  definitionList.replaceChildren(...rows.map((row) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = `${row.name} · ${row.program}`;
-    exposure.bind(button, START, { plugin: row.plugin, params: definitionStartParams(row) }).catch((error) => reportError("agents.running", `bind ${row.id}: ${error?.message ?? error}`));
-    return button;
-  }));
-  noDefinitions.hidden = rows.length > 0;
-}
-
-async function reloadDefinitions() {
-  try {
-    definitionRecords = parseDefinitions((await bridge.runtime.data.get("definitions")) ?? {});
-    accountList = parseAccounts((await bridge.runtime.data.get("accounts")) ?? []);
-    renderDefinitions();
-  } catch (error) {
-    reportError("agents.running", `definitions could not be read: ${error?.message ?? error}`);
-  }
-}
-
-bridge.runtime.data.on(() => { reloadDefinitions(); });
-await reloadDefinitions();

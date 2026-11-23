@@ -135,7 +135,7 @@ test("plugin.json declares the sidecar of the files that the import writes, at t
   assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.13" });
 });
 
-test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select, agents.session.start and agents.session.show with their parameters and results", () => {
+test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select and agents.session.show with their parameters and results", () => {
   assert.deepEqual(manifest.exposes.commands, [
     {
       name: "agents.group.create",
@@ -162,12 +162,6 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       result: { type: "null" },
     },
     {
-      name: "agents.session.start",
-      description: "Starts a session of the plugin with the params as an owned session of this section, with core.session.open. No tab holds it until agents.session.show shows it. Returns the session identifier.",
-      params: { type: "object", properties: { plugin: { type: "string" }, params: { type: "object" } }, required: ["plugin", "params"] },
-      result: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
-    },
-    {
       name: "agents.session.show",
       description: "Shows a session that core.sessions lists as open in the current card of the window, with core.layout.open, so that the tab attaches to the session.",
       params: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
@@ -192,6 +186,13 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       result: { type: "null" },
     },
   ]);
+});
+
+// A25: the running agents section lists running sessions only; members are invited in the clubhouse room, so the section starts
+// no definition.
+test("the running agents section has no list of definitions to start", () => {
+  const html = readFileSync(new URL("../ui/running.html", import.meta.url), "utf8");
+  assert.doesNotMatch(html, /id="definitions"|id="no-definitions"|정의 시작/);
 });
 
 // The extension point of the maker plugins (core docs/spec/plugins.md#extension-points): the provider declares it in extends,
