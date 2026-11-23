@@ -6,6 +6,8 @@ import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
 import { runningTree } from "./running.js";
 import { showSession } from "./sessions.js";
+import { runningNodes } from "./tree-paths.js";
+import { createTreeView } from "./tree-view.js";
 
 const SELECT = "agents.running.select";
 const SHOW = "agents.session.show";
@@ -38,39 +40,28 @@ function programDetail(program) {
   return program.pid === null ? program.state : `${program.state} (pid ${program.pid})`;
 }
 
-// Draws the tree: a list item per group and card, and a button per agent tab that selects it.
-async function render() {
+// The tree of the section, drawn by the tree library (tree-view.js). A press on a row runs agents.running.select for a tab and
+// agents.session.show for a session that no tab shows; the end of a row shows its activity and program state.
+const view = createTreeView(list, {
+  exposure,
+  rowOf: (node) => ({ name: "agents.running.row", ...(node.kind === "tab"
+    ? { command: SELECT, params: { tab: node.id } } : { command: SHOW, params: { session: node.id } }) }),
+  picked: () => {},
+  detail: (node) => `${node.activity ?? "-"} · ${programDetail(node.program)}`,
+  failed: (error) => reportError("agents.running", `row: ${error?.message ?? error}`),
+});
+
+// Draws the tree of the agent tabs and sessions; an invalid status is reported and the tree keeps what it showed.
+function render() {
   if (grid === null || sessions === null) return;
   let tree;
   try {
     tree = runningTree(grid, activity, sessions);
+    view.show(runningNodes(tree));
   } catch (error) {
     reportError("agents.running", `the tree could not be drawn: ${error?.message ?? error}`);
     return;
   }
-  const items = [];
-  const draw = (nodes, depth) => {
-    for (const node of nodes) {
-      if (node.kind === "tab" || node.kind === "session") {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.style.paddingLeft = `${depth * 12}px`;
-        row.textContent = `${node.name} · ${node.activity ?? "-"} · ${programDetail(node.program)}`;
-        items.push(row);
-        // The row runs the command with its tab; the binder connects the element to the declared command.
-        const [command, params] = node.kind === "tab" ? [SELECT, { tab: node.id }] : [SHOW, { session: node.id }];
-        exposure.bind(row, command, params).catch((error) => reportError("agents.running", `bind ${node.id}: ${error?.message ?? error}`));
-      } else {
-        const head = document.createElement("p");
-        head.style.paddingLeft = `${depth * 12}px`;
-        head.textContent = node.kind === "group" ? node.name : node.id;
-        items.push(head);
-        draw(node.children, depth + 1);
-      }
-    }
-  };
-  draw(tree, 0);
-  list.replaceChildren(...items);
   empty.hidden = tree.length > 0;
 }
 

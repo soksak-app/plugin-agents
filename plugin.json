@@ -76,6 +76,10 @@
     }
   },
   "exposes": {
+    "element": [
+      { "name": "agents.running.row", "description": "One visible row of the running agents tree, as the tree library draws it: a group, a card or a running agent CLI.", "many": true },
+      { "name": "agents.definitions.row", "description": "One visible row of the definitions tree, as the tree library draws it: a group or a definition.", "many": true }
+    ],
     "commands": [
       {
         "name": "agents.group.create",
