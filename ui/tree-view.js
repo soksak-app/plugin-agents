@@ -3,6 +3,7 @@
 // so the view marks each drawn row with its command when the root changes, and the binder delegates the presses in that root.
 import { FileTree, themeToTreeStyles } from "./vendor/trees.js";
 import { treePaths } from "./tree-paths.js";
+import { AGENT_ICON_SYMBOLS } from "./vendor/agent-icons.js";
 
 // The rows have the values of the files tree (the files plugin, ui/tree.js): the 12px text and the 20px row of the sidebar list, the
 // 10px gutter, the 4pt scroll bar and the colors of the app tokens, so the trees of the sections look the same.
@@ -18,10 +19,10 @@ const SCROLLBAR = `
 ::-webkit-scrollbar-corner{background:transparent}
 `;
 // A row of an agent or a definition is a file of the library. Its icon slot shows the robot emoji (U+1F916) of the system emoji font
-// in place of the file icon.
+// in place of the file icon, and a row of a known agent CLI shows the icon of its program from @lobehub/icons-static-svg (A32).
 const AGENT_ICON = "soksak-agent";
 const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24"><text x="12" y="20"
- font-size="22" text-anchor="middle">\u{1F916}</text></symbol></svg>`;
+ font-size="22" text-anchor="middle">\u{1F916}</text></symbol>${Object.values(AGENT_ICON_SYMBOLS).join("")}</svg>`;
 
 // The menu of a right click has the look of the core picker (core packages/workbench/app.css .picker): the card background, the
 // theme border, a shadow, and one line per entry in the 12px text, with the inset color under the pointer. The library places the
@@ -62,9 +63,10 @@ function themeStyles() {
  * rowOf(value) gives the {name, command, params} of a row, the element name and the command that a press of the row runs. picked(value)
  * is called with the value of the row that the person selects, or null when no row is selected. detail(value) is the text at the end of
  * a row, or null for none. menu(value) lists the {label, command, params} entries of the menu that a right click on a row opens, or
- * is empty for no menu. rowOf may give a null command for a row that a press does not run. failed reports an error of a press.
+ * is empty for no menu. rowOf may give a null command for a row that a press does not run. icon(value) is the program of the icon of a
+ * row, a key of AGENT_ICON_SYMBOLS, or null for the robot icon. failed reports an error of a press.
  */
-export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], failed }) {
+export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], icon = () => null, failed }) {
   let items = new Map();
   let syncing = false;
   if (!document.getElementById("tree-menu-style")) {
@@ -124,10 +126,15 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
       const { name, command, params } = rowOf(items.get(row.dataset.itemPath));
       row.dataset.expose = name;
       if (command !== null) exposure.mark(row, command, params).catch(failed);
+      // The library draws the file icon as <use href="#soksak-agent">; a row of a known program draws the symbol of its program.
+      const program = icon(items.get(row.dataset.itemPath));
+      const use = row.querySelector("[data-item-section='icon'] use");
+      if (use) use.setAttribute("href", `#${program === null ? AGENT_ICON : `${AGENT_ICON}-${program}`}`);
     }
   };
   exposure.delegate(root).catch(failed);
-  new MutationObserver(markRows).observe(root, { childList: true, subtree: true });
+  // The library reuses a row element for another item by changing its path, so a change of the path marks the rows again.
+  new MutationObserver(markRows).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-item-path"] });
   const applyTheme = () => Object.entries(themeStyles()).forEach(([name, value]) => holder.style.setProperty(name, value));
   applyTheme();
   new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["style", "data-mode"] });

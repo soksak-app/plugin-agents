@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@lobehub/icons-static-svg':
+        specifier: 1.105.0
+        version: 1.105.0
       '@pierre/trees':
         specifier: 1.0.0-beta.4
         version: 1.0.0-beta.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -179,6 +182,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@lobehub/icons-static-svg@1.105.0':
+    resolution: {integrity: sha512-2jlqEGm0N+caqwho/feVsl2njnZ7HKQvmSdyovrPdHEGnmML+3POtusOZ04V0jhQDhyqmTFQ3itrBPU0C4cwBQ==}
+
   '@pierre/trees@1.0.0-beta.4':
     resolution: {integrity: sha512-OfT1yk9ne8Te5+GB5zUY8yqE6B8BqjBHQJleH4lu8ltwNpoocZl4vXt1AzlEExpxI/pp+AFX5QG+lR3JjtTEag==}
     peerDependencies:
@@ -326,6 +332,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@lobehub/icons-static-svg@1.105.0': {}
 
   '@pierre/trees@1.0.0-beta.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)':
     dependencies:

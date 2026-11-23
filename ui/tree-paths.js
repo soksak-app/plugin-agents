@@ -56,3 +56,18 @@ export function definitionNodes(rows) {
     children: row.members.map((member) => ({ label: member.id, value: { group: row.id, member } })),
   }));
 }
+
+// The app name of a known CLI that differs from its program name: Claude Code reports claude-code (terminal.program-state app).
+const APP_PROGRAMS = { "claude-code": "claude" };
+
+/**
+ * Returns the program of known, a list of program names, that the row name starts with: the first word, the last segment of a path,
+ * without case, with the app name of APP_PROGRAMS read as its program; null for another program (A32).
+ */
+export function iconProgram(name, known) {
+  const word = name.split(" ")[0].toLowerCase();
+  const program = word.slice(word.lastIndexOf("/") + 1);
+  // default: a program whose app name is its program name has no entry in APP_PROGRAMS.
+  const resolved = APP_PROGRAMS[program] ?? program;
+  return known.includes(resolved) ? resolved : null;
+}

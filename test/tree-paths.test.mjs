@@ -2,7 +2,7 @@
 // carry #1, #2 in their order, and a folder path ends with `/`.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { definitionNodes, runningNodes, treePaths } from "../ui/tree-paths.js";
+import { definitionNodes, iconProgram, runningNodes, treePaths } from "../ui/tree-paths.js";
 
 test("treePaths numbers ten rows of one name #1 to #10, so they are ten paths", () => {
   const rows = Array.from({ length: 10 }, (_, index) => ({ kind: "session", id: `s${index}`, name: "claude manager-lead", activity: null, program: null }));
@@ -30,4 +30,16 @@ test("treePaths lists each definition group with its members by their identifier
 
 test("treePaths refuses a row without a name", () => {
   assert.throws(() => treePaths([{ label: "bin/", value: 1 }]), /a tree row has no name/);
+});
+
+// A32: a row of a known agent CLI shows the icon of its program. The name of a row starts with its program, a path or a name, and
+// claude-code is the name that Claude Code reports as its app; a row of another program has no icon of its own.
+test("iconProgram gives the known program that a row name starts with, and null for another program", () => {
+  const known = ["claude", "codex", "gemini"];
+  assert.equal(iconProgram("claude moai-manager-lead", known), "claude");
+  assert.equal(iconProgram("claude-code", known), "claude");
+  assert.equal(iconProgram("/usr/local/bin/codex #2", known), "codex");
+  assert.equal(iconProgram("codex claude-reviewer", known), "codex");
+  assert.equal(iconProgram("Gemini", known), "gemini");
+  assert.equal(iconProgram("aider", known), null);
 });

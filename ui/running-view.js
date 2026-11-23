@@ -6,8 +6,9 @@ import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
 import { runningTree } from "./running.js";
 import { showSession } from "./sessions.js";
-import { runningNodes } from "./tree-paths.js";
+import { iconProgram, runningNodes } from "./tree-paths.js";
 import { createTreeView } from "./tree-view.js";
+import { AGENT_ICON_SYMBOLS } from "./vendor/agent-icons.js";
 
 const SELECT = "agents.running.select";
 const SHOW = "agents.session.show";
@@ -44,6 +45,8 @@ const view = createTreeView(list, {
   picked: () => {},
   // The end of a row shows the program state of the CLI, idle, working or blocked, and nothing when the CLI reports none.
   detail: (node) => node.program?.state ?? null,
+  // A row of a known agent CLI shows the icon of its program (A32).
+  icon: (node) => iconProgram(node.name, Object.keys(AGENT_ICON_SYMBOLS)),
   failed: (error) => reportError("agents.running", `row: ${error?.message ?? error}`),
 });
 

@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A32: claude, codex, gemini 행은 `@lobehub/icons-static-svg`의 프로그램 아이콘을 보인다.
 - A29-4: 실행 중인 에이전트 tree의 card는 탭 제목들로 이름 붙는다. 행의 오른쪽 클릭 메뉴는 core picker 모양으로 항목마다 한 줄이다.
 - A29-3: 실행 중인 에이전트 섹션은 사람이 shell에서 시작한 CLI를 프로그램 상태의 app 이름으로 보인다.
 - A30: 각 에이전트와 정의 행의 icon은 sparkles icon 대신 로봇 emoji다.
