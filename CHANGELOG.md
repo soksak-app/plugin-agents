@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A30: The icon of each agent and definition row is the robot emoji in place of the sparkles icon.
 - A30: Each agent and definition row shows the Lucide sparkles icon in the icon slot of the tree.
 - A26-1: The sidebar shows no accounts section and no definition form; the definitions tree fills its section, and a definition row keeps the place of the file icon, as in the files tree.
 - A30: The trees take the font, row height, gutter, scroll bar and token colors of the files tree and span the width of the section.

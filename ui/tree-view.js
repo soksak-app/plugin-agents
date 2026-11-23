@@ -17,13 +17,11 @@ const SCROLLBAR = `
 ::-webkit-scrollbar-thumb:hover{background:rgba(127,127,127,0.42)}
 ::-webkit-scrollbar-corner{background:transparent}
 `;
-// A row of an agent or a definition is a file of the library. Its icon slot shows the sparkles icon of Lucide (ISC license,
-// https://lucide.dev/icons/sparkles) in place of the file icon, drawn in the text color.
+// A row of an agent or a definition is a file of the library. Its icon slot shows the robot emoji (U+1F916) of the system emoji font
+// in place of the file icon.
 const AGENT_ICON = "soksak-agent";
-const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
- stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962
-L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2
- 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol></svg>`;
+const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24"><text x="12" y="20"
+ font-size="22" text-anchor="middle">\u{1F916}</text></symbol></svg>`;
 
 /** The tree colors. Every color is a var() of the app tokens, so no default color of the library shows. */
 function themeStyles() {

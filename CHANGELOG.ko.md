@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A30: 각 에이전트와 정의 행의 icon은 sparkles icon 대신 로봇 emoji다.
 - A30: 각 에이전트와 정의 행은 tree의 icon 자리에 Lucide sparkles icon을 보인다.
 - A26-1: 사이드바는 계정 섹션과 정의 form을 보이지 않는다. 정의 tree가 섹션을 채우며, 정의 행은 files tree처럼 file icon의 자리를 유지한다.
 - A30: tree는 files tree의 글꼴, 행 높이, gutter, scroll bar, token 색을 쓰며 섹션의 폭 전체를 차지한다.
