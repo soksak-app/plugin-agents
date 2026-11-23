@@ -1,6 +1,8 @@
 # 기능
 
 항목 상태는 `[ ]` 대기, `[~]` 진행, `[o]` 완료, `[!]` 보류, `[-]` 종료다.
+- [ ] A27 — P0: maker plugin의 에이전트는 plugin을 설치하자마자 정의가 되고, 방은 그중 하나를 처음 소환할 때 그 파일을 쓴다. Input: 정의 섹션이 maker group을 `가져오기` 버튼과 함께 보이고, 그 버튼은 group의 파일을 project에 쓰고 에이전트를 정의하지만 무엇을 어디에 쓰는지 알리지 않는다. Expected: 버튼이 빠지고, 정의 목록과 clubhouse roster가 설치된 각 maker의 에이전트를 나열하며, 그런 에이전트의 첫 소환이 그 group의 파일을 project에 쓰고 방이 쓴 파일을 밝히는 줄을 덧붙인다. 다른 내용이 있는 경로는 이유와 함께 소환을 거부하고 아무것도 쓰지 않는다.
+- [ ] A28 — P0: 정의는 정의 섹션의 + 버튼으로 추가하며, 버튼은 창의 dialog modal을 연다. Input: 에이전트를 정의하는 form이 sidebar 섹션 안에 그려진다. Expected: 섹션은 + 버튼을 보이고, 버튼은 sidebar 안이 아니라 창 위에 mode `dialog`의 modal을 열며, modal은 정의의 field와 추가 버튼을 가진다. form은 섹션에서 빠진다.
 - [ ] A25 — P0: 실행 중인 에이전트 섹션은 실행 중인 session만 나열한다. Input: 섹션이 정의마다 한 줄인 `정의 시작` 목록을 보이고, 그 줄은 owned session을 시작한다. Behavior: member는 clubhouse 방의 roster에서 초대하므로, 이 목록은 실행 중인 에이전트라는 이름 아래 정의 섹션을 되풀이한다. Expected: 섹션은 실행 중인 session만 보이고, 다른 곳에서 쓰지 않으면 목록과 `agents.session.start` 명령이 plugin에서 빠지며, test와 spec이 함께 바뀐다.
 - [ ] A26 — P0, core의 plugin settings view를 기다린다: 계정은 sidebar 섹션이 아니라 settings 창의 plugin page에서 관리한다. Input: 섹션 `agents.accounts`가 sidebar에서 계정을 정의한다. Expected: 섹션이 manifest에서 빠지고, 계정은 core settings 창이 plugin page에 보이는 plugin의 settings view에서 추가, 변경, 삭제된다.
 - [o] A1 — P1: Manifest `plugin.json`이 식별자 `agents`, 이름, 설명과 두 section `agents.running`, `agents.definitions`를 각각 page(A3, A4)를 가진 view section으로 선언한다. `test/manifest-shape.test.mjs`가 그 선언을 core plugin spec의 manifest 규칙과 대조한다.
