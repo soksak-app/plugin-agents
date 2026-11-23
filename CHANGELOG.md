@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A29-2, A30: The running agents and the definitions sections draw their trees with the bundled `@pierre/trees`, checked in the application window.
 - A32: A row of claude, codex or gemini shows the icon of its program from `@lobehub/icons-static-svg`.
 - A29-4: A card of the running agents tree is named by the titles of its tabs. The right click menu of a row has the look of the core picker, one line per entry.
 - A29-3: The running agents section lists a CLI that a person started in a shell, named by the app of its program state.
