@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A30: Each agent and definition row shows the Lucide sparkles icon in the icon slot of the tree.
 - A26-1: The sidebar shows no accounts section and no definition form; the definitions tree fills its section, and a definition row keeps the place of the file icon, as in the files tree.
 - A30: The trees take the font, row height, gutter, scroll bar and token colors of the files tree and span the width of the section.
 - A30: The trees draw no file icon, use the text of the section and start at its left edge; a definition row shows only `정의되지 않음` at its end, so its name keeps the width; the definitions section lists the maker groups only in the tree; the running agents section shows its empty text in place of the tree.

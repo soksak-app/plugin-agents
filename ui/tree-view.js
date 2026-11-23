@@ -17,9 +17,13 @@ const SCROLLBAR = `
 ::-webkit-scrollbar-thumb:hover{background:rgba(127,127,127,0.42)}
 ::-webkit-scrollbar-corner{background:transparent}
 `;
-// A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set. The row hides the icon and
-// keeps its place, so the text of a row starts one level right of the text of its folder, as in the files tree.
-const NO_FILE_ICON = "[data-item-type='file'] > [data-item-section='icon']{visibility:hidden}";
+// A row of an agent or a definition is a file of the library. Its icon slot shows the sparkles icon of Lucide (ISC license,
+// https://lucide.dev/icons/sparkles) in place of the file icon, drawn in the text color.
+const AGENT_ICON = "soksak-agent";
+const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+ stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962
+L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2
+ 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol></svg>`;
 
 /** The tree colors. Every color is a var() of the app tokens, so no default color of the library shows. */
 function themeStyles() {
@@ -61,8 +65,8 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
     initialExpansion: "open",
     // The rows are agents and definitions, not files, so the library draws no file icon.
     flattenEmptyDirectories: false,
-    icons: { set: "none" },
-    unsafeCSS: SCROLLBAR + NO_FILE_ICON,
+    icons: { set: "none", spriteSheet: SPRITES, remap: { "file-tree-icon-file": { name: AGENT_ICON, viewBox: "0 0 24 24" } } },
+    unsafeCSS: SCROLLBAR,
     composition: {
       contextMenu: {
         triggerMode: "right-click",
