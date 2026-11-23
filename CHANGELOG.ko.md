@@ -37,3 +37,4 @@
 - A24: Definitions page가 core가 받아들이는 local point 이름 `makers`로 maker group을 읽는다. 전체 이름 `agents.makers`는 거부되어 어떤 maker group도 연결되지 않았다.
 - A25: 실행 중인 에이전트 섹션은 실행 중인 session만 나열한다. member는 clubhouse 방에서 초대하므로 정의 시작 목록과 `agents.session.start` 명령이 plugin에서 빠졌다.
 - A27-1: definitions view는 연결된 maker group의 정의를 파일을 쓰지 않고 저장하고, 명령 `agents.group.write {group}`는 group의 파일을 쓰고 role을 정의하며 다른 내용을 가진 경로를 거부한다. `가져오기` 버튼과 `agents.group.import`는 plugin에서 빠졌다.
+- A29-1: 실행 중인 에이전트 섹션은 clubhouse가 연 owned session을 포함해 실행 중인 agent CLI마다 program과 role로 이름 붙인 한 줄을 나열한다.

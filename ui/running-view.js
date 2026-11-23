@@ -40,10 +40,10 @@ function programDetail(program) {
 
 // Draws the tree: a list item per group and card, and a button per agent tab that selects it.
 async function render() {
-  if (grid === null) return;
+  if (grid === null || sessions === null) return;
   let tree;
   try {
-    tree = runningTree(grid, activity);
+    tree = runningTree(grid, activity, sessions);
   } catch (error) {
     reportError("agents.running", `the tree could not be drawn: ${error?.message ?? error}`);
     return;
@@ -51,14 +51,15 @@ async function render() {
   const items = [];
   const draw = (nodes, depth) => {
     for (const node of nodes) {
-      if (node.kind === "tab") {
+      if (node.kind === "tab" || node.kind === "session") {
         const row = document.createElement("button");
         row.type = "button";
         row.style.paddingLeft = `${depth * 12}px`;
         row.textContent = `${node.name} · ${node.activity ?? "-"} · ${programDetail(node.program)}`;
         items.push(row);
         // The row runs the command with its tab; the binder connects the element to the declared command.
-        exposure.bind(row, SELECT, { tab: node.id }).catch((error) => reportError("agents.running", `bind ${node.id}: ${error?.message ?? error}`));
+        const [command, params] = node.kind === "tab" ? [SELECT, { tab: node.id }] : [SHOW, { session: node.id }];
+        exposure.bind(row, command, params).catch((error) => reportError("agents.running", `bind ${node.id}: ${error?.message ?? error}`));
       } else {
         const head = document.createElement("p");
         head.style.paddingLeft = `${depth * 12}px`;
@@ -97,4 +98,4 @@ await Promise.all([
 ]);
 bridge.runtime.status.watch("core.grid", (value) => { grid = value; render(); });
 bridge.runtime.status.watch("core.activity", (value) => { activity = value?.tabs ?? {}; render(); });
-bridge.runtime.status.watch("core.sessions", (value) => { sessions = value; });
+bridge.runtime.status.watch("core.sessions", (value) => { sessions = value; render(); });

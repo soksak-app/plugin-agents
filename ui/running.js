@@ -1,6 +1,7 @@
-// The tree of the running agents section (A3 in docs/features.md): the group, card and tab tree of core.grid, with the tabs
-// that run an agent CLI. An agent tab is a tab of any plugin whose params name a program (core docs/spec/agent-roles.md, the
-// parameters of core.layout.open); the section names no plugin. Its name is its role, or else its program. Its activity is the value of core.activity
+// The tree of the running agents section (A3 and A29 in docs/features.md): the group, card and tab tree of core.grid, with a row for
+// each running agent CLI. An agent tab is a tab of any plugin whose params name a program (core docs/spec/agent-roles.md, the
+// parameters of core.layout.open), or a tab that shows an owned session whose params name one; the section names no plugin. Its name is
+// its program, with its role after it. Its activity is the value of core.activity
 // for the tab. Items of one level are in drawn order: by the top edge, then by the left edge.
 
 const ACTIVITIES = ["attention", "failed", "running", "idle"];
@@ -21,25 +22,37 @@ function programState(tab) {
   return { state: program.state, pid: program.pid };
 }
 
-// The agent tab of a tab record, or null when the tab runs no agent CLI.
-function agentName(tab) {
-  if (tab.params === null || typeof tab.params !== "object") return null;
-  const { program, role } = tab.params;
+// The name of a running agent CLI from the params that started it: its program, and its role after it when it runs with one; null when
+// the params name no program.
+function agentName(params) {
+  if (params === null || typeof params !== "object") return null;
+  const { program, role } = params;
   if (typeof program !== "string" || program.length === 0) return null;
-  return typeof role === "string" && role.length > 0 ? role : program;
+  return typeof role === "string" && role.length > 0 ? `${program} ${role}` : program;
+}
+
+// The program state of a core.sessions entry as the program of a row, {state, pid}; a session reports no process id.
+function sessionProgram(entry) {
+  if (entry.program === null) return null;
+  if (!PROGRAM_STATES.includes(entry.program?.state)) throw new Error(`program of session ${entry.session} must be null or an object with state idle, working or blocked`);
+  return { state: entry.program.state, pid: null };
 }
 
 /**
- * Returns the tree of the agent tabs of grid, a core.grid value, with activities, the core.activity tabs map of tab identifier to
- * activity. Each node is {kind: "card" | "group", id, children} or {kind: "tab", id, name, activity, program}, where program is the
- * program state of the tab from core.grid (null when the tab has none), and a card or a group with
- * no agent tab is left out. Throws with the text of the rule when grid or an activity is not of the form the spec states.
+ * Returns the tree of the running agent CLIs of grid, a core.grid value, with activities, the core.activity tabs map of tab identifier to
+ * activity, and sessions, the core.sessions list. Each node is {kind: "card" | "group", id, children}, {kind: "tab", id, name, activity,
+ * program} or {kind: "session", id, name, activity, program}. A tab node is a tab whose params name a program, or a tab that shows an
+ * owned session whose params name one; a session node is an owned session that no tab shows, in the card of its owner tab, after the
+ * tabs of that card. Each running CLI is its own row, named by agentName. program is the program state (null when there is none), and a
+ * card or a group without a row is left out. Throws with the text of the rule when a value is not of the form the spec states.
  */
-export function runningTree(grid, activities) {
+export function runningTree(grid, activities, sessions) {
   if (grid === null || typeof grid !== "object") throw new Error("core.grid is not an object");
   if (!Array.isArray(grid.cards)) throw new Error("core.grid has no cards list");
   if (!Array.isArray(grid.groups)) throw new Error("core.grid has no groups list");
+  if (!Array.isArray(sessions)) throw new Error("core.sessions is not a list");
   const { cards, groups } = grid;
+  const sessionOf = new Map(sessions.map((entry) => [entry.session, entry]));
   for (const [id, activity] of Object.entries(activities)) {
     if (activity !== null && !ACTIVITIES.includes(activity)) {
       throw new Error(`activity ${activity} of tab ${id} is not one of ${ACTIVITIES.join(", ")}`);
@@ -49,11 +62,20 @@ export function runningTree(grid, activities) {
   // The tabs of one card that run an agent, as tab nodes in tab order.
   const cardTabs = (card) => {
     if (!Array.isArray(card.tabs)) throw new Error(`card ${card.id} has no tabs list`);
-    return card.tabs.flatMap((tab) => {
-      const name = agentName(tab);
+    const rows = card.tabs.flatMap((tab) => {
       const program = programState(tab);
+      // A tab that shows an owned session runs the CLI that the session started.
+      const shown = typeof tab.params?.session === "string" ? sessionOf.get(tab.params.session) : undefined;
+      const name = agentName(shown === undefined ? tab.params : shown.params);
       return name === null ? [] : [{ kind: "tab", id: tab.tab, name, activity: activities[tab.tab] ?? null, program }];
     });
+    const owners = new Set(card.tabs.map((tab) => tab.tab));
+    for (const entry of sessions) {
+      if (entry.shownBy !== null || !owners.has(entry.owner)) continue;
+      const name = agentName(entry.params);
+      if (name !== null) rows.push({ kind: "session", id: entry.session, name, activity: null, program: sessionProgram(entry) });
+    }
+    return rows;
   };
 
   // The items that stand directly in parent, each with the edges that order them, and the nodes that hold an agent tab.
