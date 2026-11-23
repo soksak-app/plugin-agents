@@ -1,9 +1,10 @@
-// Checks the import of a maker group (A17, docs/spec/makers.md#import): the group object, the identifiers of the agents, the account
-// of each agent and the plan of the writes, with the rules of ui/makers.js.
+// Checks the maker group of a connected item (A17, docs/spec/makers.md): the group object, the identifiers of the agents, the account of
+// each agent, the stored records of a listing (listRecords) and the folders, files and roles of a write (writePlan), with the rules of
+// ui/makers.js.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { MAKERS_POINT, agentSlug, definitionIdentifier, importPlan, parseMakerGroup } from "../ui/makers.js";
+import { MAKERS_POINT, agentSlug, definitionIdentifier, listRecords, parseMakerGroup, writePlan } from "../ui/makers.js";
 
 const group = (overrides = {}) => ({
   id: "moai",
@@ -60,67 +61,72 @@ test("parseMakerGroup accepts an executable member that is a boolean and refuses
   }
 });
 
-test("importPlan passes the executable member of each file, false when the entry has none", () => {
-  const plan = importPlan({
-    group: group({ files: [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable: true }, { path: ".moai/skills/plan/SKILL.md", text: "plan\n" }] }),
-    groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project",
-  });
+test("writePlan passes the executable member of each file, false when the entry has none", () => {
+  const plan = writePlan(group({ files: [{ path: ".moai/agents/backend.md", text: "# Backend\n", executable: true }, { path: ".moai/skills/plan/SKILL.md", text: "plan\n" }] }));
   assert.deepEqual(plan.files, [
     { path: ".moai/agents/backend.md", text: "# Backend\n", executable: true },
     { path: ".moai/skills/plan/SKILL.md", text: "plan\n", executable: false },
   ]);
 });
 
-test("importPlan writes each folder and file, creates the account of the agent cli and defines the agent with its file", () => {
-  const plan = importPlan({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
+test("writePlan lists the folders, the files and the role of each agent with its file, and no stored record", () => {
+  const plan = writePlan(group());
+  assert.deepEqual(Object.keys(plan), ["folders", "files", "roles"]);
   assert.deepEqual(plan.folders, [".moai/"]);
   assert.deepEqual(plan.files.map((file) => file.path), [".moai/agents/backend.md", ".moai/skills/plan/SKILL.md"]);
-  assert.deepEqual(plan.accounts, [{ id: "claude", cli: "claude", args: [], env: [] }]);
-  assert.deepEqual(plan.definitions, {
-    "moai-backend-expert": { name: "Backend Expert", account: "claude", plugin: "terminal", role: "moai-backend-expert", cwd: "/work/project" },
-  });
-  assert.deepEqual(plan.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"] } });
   assert.deepEqual(plan.roles, [{ id: "moai-backend-expert", text: "Follow the definition in .moai/agents/backend.md.", ko: ".moai/agents/backend.md 파일의 정의를 따른다.", files: [".moai/agents/backend.md"] }]);
 });
 
-test("importPlan uses the first account whose cli equals the agent cli and creates none", () => {
+test("writePlan refuses an agent identifier that repeats within the group, naming the agent", () => {
+  const twins = group({ agents: [{ name: "Backend Expert", path: ".moai/agents/backend.md", cli: "claude" }, { name: "backend-expert", path: ".moai/agents/backend.md", cli: "claude" }] });
+  assert.throws(() => writePlan(twins), /agent backend-expert repeats the identifier moai-backend-expert of the group/);
+});
+
+test("listRecords stores the account of the agent cli, creates it, and stores each definition with its maker and the group record", () => {
+  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
+  assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [] }]);
+  assert.deepEqual(stored.definitions, {
+    "moai-backend-expert": { name: "Backend Expert", account: "claude", plugin: "terminal", role: "moai-backend-expert", cwd: "/work/project", maker: "moai" },
+  });
+  assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"] } });
+});
+
+test("listRecords uses the first account whose cli equals the agent cli and creates none", () => {
   const accounts = [{ id: "work", cli: "claude", args: ["--x"], env: [] }];
-  const plan = importPlan({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" });
-  assert.deepEqual(plan.accounts, []);
-  assert.equal(plan.definitions["moai-backend-expert"].account, "work");
+  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" });
+  assert.deepEqual(stored.accounts, accounts);
+  assert.equal(stored.definitions["moai-backend-expert"].account, "work");
 });
 
-test("importPlan refuses an account identifier that another cli holds, naming the account", () => {
+test("listRecords refuses an account identifier that another cli holds, naming the account", () => {
   const accounts = [{ id: "claude", cli: "codex", args: [], env: [] }];
-  assert.throws(() => importPlan({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" }), /account claude is defined with cli codex/);
+  assert.throws(() => listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" }), /account claude is defined with cli codex/);
 });
 
-test("importPlan keeps the members the person added and sets the maker definitions, and an equal import changes nothing", () => {
-  const first = importPlan({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
+test("listRecords keeps the members the person added, and a listing of an equal group changes nothing", () => {
+  const first = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
   const groups = { moai: { name: "MoAI", members: ["mine"] } };
   const definitions = { mine: { name: "Mine", account: "claude", plugin: "terminal", role: "mine", cwd: "/work/project" } };
-  const second = importPlan({ group: group(), groups, definitions, accounts: [{ id: "claude", cli: "claude", args: [], env: [] }], plugin: "terminal", cwd: "/work/project" });
+  const second = listRecords({ group: group(), groups, definitions, accounts: [{ id: "claude", cli: "claude", args: [], env: [] }], plugin: "terminal", cwd: "/work/project" });
   assert.deepEqual(second.groups.moai.members, ["mine", "moai-backend-expert"]);
   assert.deepEqual(second.definitions.mine, definitions.mine);
-  const again = importPlan({ group: group(), groups: first.groups, definitions: first.definitions, accounts: [{ id: "claude", cli: "claude", args: [], env: [] }], plugin: "terminal", cwd: "/work/project" });
-  assert.deepEqual(again.groups, first.groups);
-  assert.deepEqual(again.definitions, first.definitions);
+  const again = listRecords({ group: group(), groups: first.groups, definitions: first.definitions, accounts: first.accounts, plugin: "terminal", cwd: "/work/project" });
+  assert.deepEqual(again, first);
 });
 
-test("importPlan refuses an agent whose identifier is a member of another group, naming the group", () => {
+test("listRecords refuses an agent whose identifier is a member of another group, naming the group", () => {
   const groups = { other: { name: "Other", members: ["moai-backend-expert"] } };
-  assert.throws(() => importPlan({ group: group(), groups, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" }), /role moai-backend-expert is already in group other/);
+  assert.throws(() => listRecords({ group: group(), groups, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" }), /role moai-backend-expert is already in group other/);
 });
 
-test("parseMakerGroup accepts a folder under .claude/ with its files, and the import plan writes only those files", () => {
+test("writePlan takes a folder under .claude/ with its files, and lists only those files", () => {
   const claude = group({
     folders: [".claude/", ".moai/"],
     agents: [{ name: "Reviewer", path: ".claude/agents/reviewer.md", cli: "claude" }],
     files: [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n" }],
   });
   assert.equal(parseMakerGroup(claude, "moai").folders[0], ".claude/");
-  const plan = importPlan({ group: claude, groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
-  assert.deepEqual(plan.files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n", executable: false }]);
+  assert.deepEqual(writePlan(claude).files, [{ path: ".claude/agents/reviewer.md", text: "# Reviewer\n", executable: false }]);
 });
 
 // The provider reads its items by the local name of the point; core refuses any name that is not a key of extends (A24).

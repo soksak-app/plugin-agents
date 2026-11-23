@@ -23,7 +23,7 @@ test("createExpose accepts the exposure port and registers a declared command of
   const { calls, bridge } = recordingBridge();
   const errors = [];
   const expose = createExpose(exposurePort(bridge, "agents.test", (where, text) => errors.push([where, text])), () => manifest.exposes);
-  await expose.command("agents.group.import", async () => ({}));
+  await expose.command("agents.group.write", async () => ({}));
   // A command registration sends nothing: the command layer of the view bridge registers the command.
   assert.deepEqual(calls, []);
   assert.deepEqual(errors, []);

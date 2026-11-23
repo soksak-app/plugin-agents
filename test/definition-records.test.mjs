@@ -72,3 +72,22 @@ test("definitionsUsingAccount lists the identifiers of the definitions that name
   assert.deepEqual(definitionsUsingAccount(definitions, "unused"), []);
 });
 
+test("parseDefinitions accepts the optional member maker as text, and refuses it when it is not text", () => {
+  const record = { name: "A", account: "claude-main", plugin: "terminal", role: "a", cwd: "/work/project" };
+  assert.deepEqual(parseDefinitions({ a: { ...record, maker: "moai" } }), { a: { ...record, maker: "moai" } });
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: 1 } }), /projects\.json plugins\.agents\.definitions: definition a must have the members account, cwd, name, plugin and role/);
+});
+
+test("defineDefinition stores the maker member when the listing gives one, and a record without maker has none", () => {
+  const withMaker = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai" });
+  assert.deepEqual(withMaker.reviewer, { name: "Reviewer", account: "claude-main", plugin: "terminal", role: "reviewer", cwd: "/work/project", maker: "moai" });
+  const plain = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
+  assert.equal(Object.hasOwn(plain.reviewer, "maker"), false);
+});
+
+test("defineDefinition keeps the maker of a record that the person defines again", () => {
+  const listed = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai" });
+  const again = defineDefinition(listed, ACCOUNTS, { id: "reviewer", ...FIELDS, name: "Review" });
+  assert.equal(again.reviewer.maker, "moai");
+  assert.equal(again.reviewer.name, "Review");
+});

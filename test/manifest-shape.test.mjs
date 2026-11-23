@@ -131,7 +131,7 @@ test("plugin.json declares the commands agents.account.define and agents.account
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the sidecar of the files that the import writes, at the version that reads the executable member of write", () => {
+test("plugin.json declares the sidecar of the files that the write writes, at the version that reads the executable member of write", () => {
   assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.13" });
 });
 
@@ -174,10 +174,10 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
     },
     {
-      name: "agents.group.import",
-      description: "Imports the maker group that a connected item of agents.makers contributes: writes its folders and files, defines its agents with core.role.define, and stores its groups, definitions and accounts. Refuses the import with the text of the rule before any write when a check fails.",
+      name: "agents.group.write",
+      description: "Writes the files of a connected maker group of agents.makers into the project and defines its roles with core.role.define. Refuses the write with the text of the rule before any write when a file holds other content. Returns the project paths that the write wrote.",
       params: { type: "object", properties: { group: { type: "string" } }, required: ["group"] },
-      result: { type: "null" },
+      result: { type: "object", properties: { written: { type: "array", items: { type: "string" } } }, required: ["written"] },
     },
     {
       name: "agents.account.remove",

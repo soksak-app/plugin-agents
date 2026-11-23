@@ -11,6 +11,8 @@ export function fakeSidecar() {
   const files = new Map();
   const log = [];
   const modes = new Map();
+  // The paths whose file starts with a byte order mark; a write stores the bom of its request.
+  const boms = new Set();
   const answer = (body) => {
     log.push(body);
     const { operation, path, id } = body;
@@ -36,7 +38,7 @@ export function fakeSidecar() {
     if (operation === "read") {
       if (!files.has(path)) return { id, error: `no such file: ${path}` };
       const text = files.get(path);
-      return { id, text, version: digest(text), newline: "lf", bom: false };
+      return { id, text, version: digest(text), newline: "lf", bom: boms.has(path) };
     }
     if (operation === "write") {
       if (files.has(path) && body.expect !== digest(files.get(path))) return { id, error: `changed on disk: ${path}` };
@@ -46,11 +48,13 @@ export function fakeSidecar() {
       if (body.executable === true) modes.set(path, "0755");
       else if (!files.has(path)) modes.set(path, "0644");
       files.set(path, body.text);
+      if (body.bom === true) boms.add(path);
+      else boms.delete(path);
       return { id, version: digest(body.text) };
     }
     return { id, error: `unknown operation ${operation}` };
   };
-  return { answer, files, folders, log, modes };
+  return { answer, boms, files, folders, log, modes };
 }
 
 // Connects createRequests to the fake: each request is answered and its reply is paired with it, as the sidecar replies.

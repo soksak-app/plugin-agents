@@ -2,33 +2,38 @@
 // (plugin.json data), an object of definition identifier to {name, account, plugin, role, cwd}. role is the core role identifier,
 // equal to the definition identifier. plugin is the value of the setting terminalPlugin when the definition is made. program and
 // args are not stored: they are resolved from the account, so a change of the account applies to every definition that names it.
+// maker is optional: the identifier of the maker group whose listing stored the definition (docs/spec/makers.md#listing). A definition the
+// person defines has no maker.
 
 const WHERE = "projects.json plugins.agents.definitions";
 const PLUGIN_ID = /^[a-z][a-z0-9-]{0,39}$/;
 const MEMBERS = ["account", "cwd", "name", "plugin", "role"];
+const OPTIONAL_MEMBERS = ["maker"];
 const NAME_MAX = 40;
 
-// Throws with the text of the rule when the value is not an object of definition identifier to the five members above, and names
-// the file and the key so the person can find the stored value.
+// Throws with the text of the rule when the value is not an object of definition identifier to the five members above, with the optional
+// member maker, and names the file and the key so the person can find the stored value.
 export function parseDefinitions(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${WHERE}: the value is not an object of definition identifier to {name, account, plugin, role, cwd}`);
   }
   for (const [id, record] of Object.entries(value)) {
-    const keys = record !== null && typeof record === "object" && !Array.isArray(record) ? Object.keys(record).sort() : [];
-    const shaped = keys.length === MEMBERS.length && keys.every((key, i) => key === MEMBERS[i]);
-    if (!shaped || MEMBERS.some((key) => typeof record[key] !== "string")) {
-      throw new Error(`${WHERE}: definition ${id} must have the members account, cwd, name, plugin and role`);
+    const keys = record !== null && typeof record === "object" && !Array.isArray(record) ? Object.keys(record) : null;
+    const allowed = keys !== null && keys.every((key) => MEMBERS.includes(key) || OPTIONAL_MEMBERS.includes(key));
+    if (!allowed || !MEMBERS.every((key) => keys.includes(key)) || keys.some((key) => typeof record[key] !== "string")) {
+      throw new Error(`${WHERE}: definition ${id} must have the members account, cwd, name, plugin and role, and optionally maker`);
     }
   }
   return value;
 }
 
 // Returns a new object with the record of the identifier added, or replaced. The account must be one of the accounts, and the
-// plugin, name and cwd are checked with the text of each rule. The input is unchanged.
-export function defineDefinition(definitions, accounts, { id, name, account, plugin, cwd }) {
+// plugin, name and cwd are checked with the text of each rule. maker is stored when given, else the record of the identifier keeps the
+// maker it has. The input is unchanged.
+export function defineDefinition(definitions, accounts, { id, name, account, plugin, cwd, maker }) {
   parseDefinitions(definitions);
   if (typeof id !== "string" || id.length === 0) throw new Error("definition identifier must be a non-empty text");
+  if (maker !== undefined && (typeof maker !== "string" || maker === "")) throw new Error("definition maker must be a non-empty text");
   const trimmed = typeof name === "string" ? name.trim() : "";
   if ([...trimmed].length < 1 || [...trimmed].length > NAME_MAX) throw new Error(`definition name must be 1 to ${NAME_MAX} characters`);
   if (!accounts.some((entry) => entry.id === account)) throw new Error(`account ${account} is not defined`);
@@ -36,7 +41,10 @@ export function defineDefinition(definitions, accounts, { id, name, account, plu
   if (typeof cwd !== "string" || !(cwd.startsWith("/") && !cwd.split("/").includes(".."))) {
     throw new Error("definition cwd must be an absolute path");
   }
-  return { ...definitions, [id]: { name: trimmed, account, plugin, role: id, cwd } };
+  const kept = maker ?? (Object.hasOwn(definitions, id) ? definitions[id].maker : undefined);
+  const record = { name: trimmed, account, plugin, role: id, cwd };
+  if (kept !== undefined) record.maker = kept;
+  return { ...definitions, [id]: record };
 }
 
 // Returns a new object without the record of the identifier. An identifier that the object does not hold is refused with the text of the rule.

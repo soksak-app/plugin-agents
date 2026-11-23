@@ -10,7 +10,7 @@ import { parseAccounts } from "./accounts.js";
 import { defineDefinition, parseDefinitions, removeDefinition } from "./definition-records.js";
 import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 import { createRequests } from "./makers-files.js";
-import { importGroup, storedChanges } from "./makers-import.js";
+import { listGroup, storedChanges, writeGroup } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
 
 const CREATE = "agents.group.create";
@@ -19,7 +19,7 @@ const REMOVE = "agents.definition.remove";
 const KEY = "groups";
 const DEFINITIONS = "definitions";
 const ACCOUNTS = "accounts";
-const IMPORT = "agents.group.import";
+const WRITE = "agents.group.write";
 const SIDECAR = "@soksak/sidecar-files";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
@@ -156,23 +156,53 @@ const onSidecar = (body) => {
 };
 const onSidecarFailure = (reason) => reportError("agents.definitions", `files sidecar failed: ${reason}`);
 
-// The connected maker groups of agents.makers, each drawn with a button that runs agents.group.import for it.
+// The connected maker groups of agents.makers, each drawn by its name. A group is listed (docs/spec/makers.md#listing) on load and on each
+// change of core.contributions, and written by the command agents.group.write {group}.
 let makers = [];
 function renderMakers() {
   const rows = makers.map((entry) => {
     const row = document.createElement("li");
-    const label = document.createElement("span");
-    label.textContent = entry.item.name;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = "가져오기";
-    exposure.bind(button, IMPORT, { group: entry.item.id }).catch((error) => reportError("agents.definitions", `bind ${entry.item.id}: ${error?.message ?? error}`));
-    row.append(label, button);
+    row.textContent = entry.item.name;
     return row;
   });
   document.getElementById("makers").replaceChildren(...rows);
   document.getElementById("no-makers").hidden = rows.length > 0;
 }
+
+// The stored values that a listing reads: the groups, the definitions and the accounts of the project.
+async function readStored() {
+  return {
+    groups: parseGroups((await bridge.runtime.data.get(KEY)) ?? {}),
+    definitions: parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {}),
+    accounts: parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []),
+  };
+}
+
+// Stores the records of each connected maker group for the keys that its listing changes. A group whose check fails is marked invalid and
+// reported; the other groups are still listed. Each group reads the stored values again, so a listing sees the changes of the one before.
+async function listMakers() {
+  for (const entry of makers) {
+    let contributed;
+    try {
+      contributed = parseMakerGroup(await (await import(entry.module)).group(), entry.item.id);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      entry.fail(text);
+      reportError("agents.definitions", `maker group ${entry.item.id} is invalid: ${text}`);
+      continue;
+    }
+    try {
+      const stored = await readStored();
+      const next = listGroup({ group: contributed, stored, plugin: await terminalPlugin(), root: start.project.root });
+      for (const key of storedChanges(stored, next)) await bridge.runtime.data.change(key, () => next[key]);
+    } catch (error) {
+      reportError("agents.definitions", `maker group ${entry.item.id} could not be listed: ${error?.message ?? error}`);
+    }
+  }
+}
+
+// The listings run one after another: each is queued behind the one before it.
+let listing = Promise.resolve();
 
 async function reloadMakers() {
   try {
@@ -180,38 +210,26 @@ async function reloadMakers() {
     renderMakers();
   } catch (error) {
     reportError("agents.definitions", `maker groups could not be read: ${error?.message ?? error}`);
+    return;
   }
+  listing = listing.then(listMakers);
+  await listing;
 }
 
-// The command agents.group.import {group}: imports the maker group of the connected item with that identifier. The module's group() is
-// checked first; an invalid group marks its item invalid. A check or a refusal of core stops the import, and the stored values change
-// only for the keys that the import changes.
-async function importMaker({ group }) {
+// The command agents.group.write {group}: writes the files of the maker group of the connected item with that identifier and defines its
+// roles (docs/spec/makers.md#writing). The module's group() is checked first; an invalid group marks its item invalid. A refused file or a
+// refusal of core stops the command with its text.
+async function writeMaker({ group }) {
   const entry = makers.find((candidate) => candidate.item.id === group);
   if (entry === undefined) throw new Error(`maker group ${group} is not connected`);
   let contributed;
   try {
-    contributed = await (await import(entry.module)).group();
-    parseMakerGroup(contributed, entry.item.id);
+    contributed = parseMakerGroup(await (await import(entry.module)).group(), entry.item.id);
   } catch (error) {
     entry.fail(error instanceof Error ? error.message : String(error));
     throw error;
   }
-  const stored = {
-    groups: parseGroups((await bridge.runtime.data.get(KEY)) ?? {}),
-    definitions: parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {}),
-    accounts: parseAccounts((await bridge.runtime.data.get(ACCOUNTS)) ?? []),
-  };
-  const next = await importGroup({
-    group: contributed,
-    stored,
-    plugin: await terminalPlugin(),
-    root: start.project.root,
-    requests,
-    define: (params) => bridge.calls.request("core.role.define", params),
-  });
-  for (const key of storedChanges(stored, next)) await bridge.runtime.data.change(key, () => next[key]);
-  return null;
+  return writeGroup({ group: contributed, root: start.project.root, requests, define: (params) => bridge.calls.request("core.role.define", params) });
 }
 
 // The forms enter their values through the inputs; Enter runs the command instead of submitting the page.
@@ -221,7 +239,7 @@ await Promise.all([
   exposure.command(CREATE, create), bridge.commands.register(CREATE, create),
   exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
   exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
-  exposure.command(IMPORT, importMaker), bridge.commands.register(IMPORT, importMaker),
+  exposure.command(WRITE, writeMaker), bridge.commands.register(WRITE, writeMaker),
 ]);
 await exposure.mark(input, CREATE, {}, "name");
 await exposure.delegate(form);
@@ -233,6 +251,7 @@ for (const [name, element] of [["id", "define-id"], ["name", "define-name"], ["c
 await exposure.delegate(defineForm);
 bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); });
 bridge.runtime.data.on(() => { reload(); });
+bridge.runtime.status.watch("core.contributions", () => { reloadMakers(); });
 await reload();
 await files.on(start.surface, onSidecar);
 await files.onFailure(start.surface, onSidecarFailure);

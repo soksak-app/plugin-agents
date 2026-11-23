@@ -3,9 +3,11 @@
 // file. The fake sidecar answers the operations of the declared wire contract (docs/spec/files.md of the sidecar repository) in memory.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFiles } from "../ui/makers-files.js";
+import { checkFiles, writeFiles } from "../ui/makers-files.js";
 import { connect, fakeSidecar } from "./fixtures/files-sidecar.mjs";
 import { createRequests } from "../ui/makers-files.js";
+
+const WRITES = ["createFolder", "write"];
 
 const PLAN = {
   folders: [".moai/"],
@@ -50,6 +52,17 @@ test("writeFiles writes nothing for a file whose text is equal, and replaces a c
   assert.equal(sidecar.files.get(".moai/agents/backend.md"), "# Backend v2\n");
 });
 
+test("writeFiles writes a file whose text is equal but starts with a byte order mark, and the write removes the mark", async () => {
+  const sidecar = fakeSidecar();
+  sidecar.files.set(".moai/agents/backend.md", "# Backend\n");
+  sidecar.boms.add(".moai/agents/backend.md");
+  sidecar.folders.add(".moai");
+  sidecar.folders.add(".moai/agents");
+  const written = await writeFiles(connect(sidecar), PLAN);
+  assert.deepEqual(written, [".moai/agents/backend.md", ".claude/agents/reviewer.md"]);
+  assert.equal(sidecar.boms.has(".moai/agents/backend.md"), false);
+});
+
 test("writeFiles leaves a project file outside the files untouched", async () => {
   const sidecar = fakeSidecar();
   const requests = connect(sidecar);
@@ -83,4 +96,33 @@ test("writeFiles writes an executable file again when its text is current, so th
   assert.equal(sidecar.files.get(".moai/agents/backend.md"), "# Backend\n");
   assert.deepEqual(await writeFiles(requests, executable), [".moai/agents/backend.md"]);
   assert.equal(sidecar.modes.get(".moai/agents/backend.md"), "0755");
+});
+
+test("checkFiles passes a path that does not exist and a path whose text is equal, and issues no write", async () => {
+  const sidecar = fakeSidecar();
+  const requests = connect(sidecar);
+  await checkFiles(requests, "moai", PLAN.files);
+  await writeFiles(requests, PLAN);
+  sidecar.log.length = 0;
+  await checkFiles(requests, "moai", PLAN.files);
+  assert.equal(sidecar.log.some((body) => WRITES.includes(body.operation)), false);
+});
+
+test("checkFiles refuses a file whose current text differs, with the group and the path, and changes no file", async () => {
+  const sidecar = fakeSidecar();
+  const requests = connect(sidecar);
+  sidecar.folders.add(".moai");
+  sidecar.folders.add(".moai/agents");
+  sidecar.files.set(".moai/agents/backend.md", "# Mine\n");
+  await assert.rejects(checkFiles(requests, "moai", PLAN.files), /maker moai: \.moai\/agents\/backend\.md holds other content/);
+  assert.equal(sidecar.log.some((body) => WRITES.includes(body.operation)), false);
+  assert.equal(sidecar.files.get(".moai/agents/backend.md"), "# Mine\n");
+});
+
+test("checkFiles refuses a listed path whose name is a folder in the project", async () => {
+  const sidecar = fakeSidecar();
+  sidecar.folders.add(".moai");
+  sidecar.folders.add(".moai/agents");
+  sidecar.folders.add(".moai/agents/backend.md");
+  await assert.rejects(checkFiles(connect(sidecar), "moai", PLAN.files), /backend\.md is a folder/);
 });

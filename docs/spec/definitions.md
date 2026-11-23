@@ -7,11 +7,11 @@ The agents plugin stores two project data keys (`plugin.json` `data`, [project d
 ## Keys
 
 - `accounts`: an array of accounts, default `[]`. Each account is `{id, cli, args, env}`: `id` matches `^[a-z][a-z0-9-]{0,39}$` and is unique; `cli` is the program name of the agent CLI, 1 to 255 characters without white space or control characters; `args` is an array of text, one argument each; `env` is an array of unique environment variable names matching `^[A-Za-z_][A-Za-z0-9_]{0,127}$`. No variable value is stored.
-- `definitions`: an object, default `{}`, of definition identifier to `{name, account, plugin, role, cwd}`. `name` is 1 to 40 characters; `account` names an account of `accounts`; `plugin` is the plugin that runs the session (the setting `terminalPlugin`, default `terminal`, when the definition was made); `role` is the core role identifier, equal to the definition identifier; `cwd` is an absolute path.
+- `definitions`: an object, default `{}`, of definition identifier to `{name, account, plugin, role, cwd}` with the optional member `maker`. `name` is 1 to 40 characters; `account` names an account of `accounts`; `plugin` is the plugin that runs the session (the setting `terminalPlugin`, default `terminal`, when the definition was made); `role` is the core role identifier, equal to the definition identifier; `cwd` is an absolute path. `maker`, when present, is the identifier of the maker group whose listing stored the definition ([makers](makers.md#listing)); a definition that the person defines has no `maker`, and defining an identifier again keeps its `maker`.
 
-## Accounts created by an import
+## Accounts created by a listing
 
-When a maker group is imported ([makers](makers.md#import)) and no account has the `cli` of an agent, the import creates the account `{id: <cli>, cli: <cli>, args: [], env: []}`. An account that already has the identifier `<cli>` with another `cli` refuses the import and names that account. No other account is created by an import.
+When a maker group is listed ([makers](makers.md#listing)) and no account has the `cli` of an agent, the listing creates the account `{id: <cli>, cli: <cli>, args: [], env: []}`. An account that already has the identifier `<cli>` with another `cli` refuses the listing and names that account. No other account is created by a listing.
 
 ## Resolution
 
@@ -19,7 +19,7 @@ A definition's program and arguments are not stored. A reader resolves them from
 
 ## Refusals
 
-A reader refuses a stored value of another form with an error that names `agents project data`, the key and the rule: for example `agents project data definitions: definition <id> must have the members account, cwd, name, plugin and role`. No value is converted.
+A reader refuses a stored value of another form with an error that names `agents project data`, the key and the rule: for example `agents project data definitions: definition <id> must have the members account, cwd, name, plugin and role, and optionally maker`. No value is converted.
 
 ## Readers
 

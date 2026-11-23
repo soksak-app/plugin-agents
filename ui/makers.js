@@ -1,6 +1,7 @@
-// The import of a maker group (A17, docs/spec/makers.md#import): checks the group object of a connected item and plans the writes
-// of the project, the accounts, the definitions and the group record. The writes themselves are made by the definitions section
-// (ui/definitions.js); the rules of the stored values are those of groups.js, roles.js, accounts.js and definition-records.js.
+// The maker groups of a connected item (A17, docs/spec/makers.md): checks the group object of an item, stores the records of a listing
+// (listRecords: the accounts, the definitions and the group record) and plans the folders, files and roles of a write (writePlan). The
+// writes themselves are made by the definitions section (ui/definitions.js) through ui/makers-import.js; the rules of the stored values
+// are those of groups.js, roles.js, accounts.js and definition-records.js.
 import { parseGroups } from "./groups.js";
 import { addMember } from "./roles.js";
 import { defineAccount, parseAccounts } from "./accounts.js";
@@ -14,7 +15,7 @@ const CLIS = ["claude", "codex"];
 const DEFINITION_ID_MAX = 64;
 const GROUP_MEMBERS = ["agents", "clis", "folders", "files", "id", "name", "path", "plugin", "rules", "skills", "variables"];
 
-// The slug of an agent name (docs/spec/makers.md#import): lower case, each run of characters outside a-z and 0-9 as one dash, the dashes
+// The slug of an agent name (docs/spec/makers.md#listing): lower case, each run of characters outside a-z and 0-9 as one dash, the dashes
 // at both ends removed. It may be empty; the caller refuses an empty slug.
 export function agentSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -77,23 +78,29 @@ export function parseMakerGroup(group, itemId) {
   return group;
 }
 
-// Plans the import of a checked group object. Returns {folders, files, accounts, definitions, groups, roles}: the folders and files to write,
-// the accounts to create, the stored definitions and groups records after the import, and the role of each agent for core.role.define.
-// Throws with the text of the rule before any write when a check fails.
-export function importPlan({ group, groups, definitions, accounts, plugin, cwd }) {
-  parseMakerGroup(group, group.id);
-  parseGroups(groups);
-  parseDefinitions(definitions);
-  parseAccounts(accounts);
+// The agents of a checked group with their definition identifiers. Refuses an identifier that repeats within the group, naming the agent.
+function agentIdentifiers(group) {
   const agents = group.agents.map((agent) => ({ agent, id: definitionIdentifier(group.id, agent.name) }));
   const ids = new Set();
   for (const { agent, id } of agents) {
     if (ids.has(id)) throw new Error(`agent ${agent.name} repeats the identifier ${id} of the group`);
     ids.add(id);
   }
-  // The accounts: the first account of each agent cli, or the account created from it (docs/spec/definitions.md#accounts-created-by-an-import).
+  return agents;
+}
+
+// Plans the stored records of a listing of a checked group (docs/spec/makers.md#listing). Returns {accounts, definitions, groups}: the
+// accounts after the listing (the accounts of each agent cli, created when none exists), the definitions with the maker member of the
+// group, and the group record with each agent identifier as a member. Throws with the text of the rule before any value is returned
+// when a check fails.
+export function listRecords({ group, groups, definitions, accounts, plugin, cwd }) {
+  parseMakerGroup(group, group.id);
+  parseGroups(groups);
+  parseDefinitions(definitions);
+  parseAccounts(accounts);
+  const agents = agentIdentifiers(group);
+  // The accounts: the first account of each agent cli, or the account created from it (docs/spec/definitions.md#accounts-created-by-a-listing).
   let next = accounts;
-  const created = [];
   const accountOf = new Map();
   for (const { agent } of agents) {
     const found = next.find((entry) => entry.cli === agent.cli);
@@ -103,14 +110,13 @@ export function importPlan({ group, groups, definitions, accounts, plugin, cwd }
     }
     if (next.some((entry) => entry.id === agent.cli)) throw new Error(`account ${agent.cli} is defined with cli ${next.find((entry) => entry.id === agent.cli).cli}`);
     next = defineAccount(next, { id: agent.cli, cli: agent.cli, args: [], env: [] });
-    created.push(next[next.length - 1]);
     accountOf.set(agent.cli, agent.cli);
   }
-  // The definitions: each agent with its account, the plugin of the terminal setting, the project root and its identifier as role.
+  // The definitions: each agent with its account, the plugin of the terminal setting, the project root, its identifier as role and the group as maker.
   let nextDefinitions = definitions;
   for (const { agent, id } of agents) {
     try {
-      nextDefinitions = defineDefinition(nextDefinitions, next, { id, name: agent.name, account: accountOf.get(agent.cli), plugin, cwd });
+      nextDefinitions = defineDefinition(nextDefinitions, next, { id, name: agent.name, account: accountOf.get(agent.cli), plugin, cwd, maker: group.id });
     } catch (error) {
       throw new Error(`agent ${agent.name}: ${error.message}`);
     }
@@ -119,11 +125,22 @@ export function importPlan({ group, groups, definitions, accounts, plugin, cwd }
   let nextGroups = Object.hasOwn(groups, group.id) ? groups : { ...groups, [group.id]: { name: group.name, members: [] } };
   nextGroups = { ...nextGroups, [group.id]: { ...nextGroups[group.id], name: group.name } };
   for (const { id } of agents) nextGroups = addMember(nextGroups, group.id, id);
-  const roles = agents.map(({ agent, id }) => ({
+  return { accounts: next, definitions: nextDefinitions, groups: nextGroups };
+}
+
+// Plans the write of a checked group (docs/spec/makers.md#writing). Returns {folders, files, roles}: the folders and the files to check and
+// write, and the role of each agent for core.role.define. Throws with the text of the rule before any write when a check fails.
+export function writePlan(group) {
+  parseMakerGroup(group, group.id);
+  const roles = agentIdentifiers(group).map(({ agent, id }) => ({
     id,
     text: `Follow the definition in ${agent.path}.`,
     ko: `${agent.path} 파일의 정의를 따른다.`,
     files: [agent.path],
   }));
-  return { folders: [...group.folders], files: group.files.map((file) => ({ path: file.path, text: file.text, executable: file.executable === true })), accounts: created, definitions: nextDefinitions, groups: nextGroups, roles };
+  return {
+    folders: [...group.folders],
+    files: group.files.map((file) => ({ path: file.path, text: file.text, executable: file.executable === true })),
+    roles,
+  };
 }
