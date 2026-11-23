@@ -34,20 +34,16 @@ const exposure = createExpose(exposurePort(bridge, "agents.running", reportError
 let grid = null;
 let activity = {};
 
-// The program detail of a row: its state, and its process id when the tab runs a program (core docs/spec/program-state.md).
-function programDetail(program) {
-  if (program === null) return "-";
-  return program.pid === null ? program.state : `${program.state} (pid ${program.pid})`;
-}
 
 // The tree of the section, drawn by the tree library (tree-view.js). A press on a row runs agents.running.select for a tab and
-// agents.session.show for a session that no tab shows; the end of a row shows its activity and program state.
+// agents.session.show for a session that no tab shows.
 const view = createTreeView(list, {
   exposure,
   rowOf: (node) => ({ name: "agents.running.row", ...(node.kind === "tab"
     ? { command: SELECT, params: { tab: node.id } } : { command: SHOW, params: { session: node.id } }) }),
   picked: () => {},
-  detail: (node) => `${node.activity ?? "-"} · ${programDetail(node.program)}`,
+  // The end of a row shows the program state of the CLI, idle, working or blocked, and nothing when the CLI reports none.
+  detail: (node) => node.program?.state ?? null,
   failed: (error) => reportError("agents.running", `row: ${error?.message ?? error}`),
 });
 
