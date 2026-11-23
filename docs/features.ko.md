@@ -1,6 +1,7 @@
 # 기능
 
 항목 상태는 `[ ]` 대기, `[~]` 진행, `[o]` 완료, `[!]` 보류, `[-]` 종료다.
+- [o] A33 — P0: A29, A30, A32를 0.0.4로 release한다. `engines.soksak`은 `core.grid`가 각 탭 program state의 app을 보고하는 첫 core release인 `^0.0.51`이다(core F1133). A29-3이 그 값을 읽는다. `pnpm test`는 117개 중 117개 통과한다.
 - [o] A30 — P1, A29-2와 함께: 에이전트 정의 섹션은 실행 중인 에이전트 섹션처럼 group과 그 정의를 `@pierre/trees`로 그린다. Input: `ui/definitions.js`는 group과 member를 자체 중첩 목록으로 그린다. Expected: 하나의 tree library가 두 섹션을 모두 그리며, Red/Green test가 있다. 코드 완료: `ui/definitions.js`가 `ui/tree-view.js`로 tree를 그리고, 정의를 오른쪽 클릭하면 열리는 메뉴의 `삭제`가 `agents.definition.remove`를 실행한다. 애플리케이션 창에서 확인했다: diagnostic build 창의 에이전트 정의 섹션이 번들된 library로 group과 정의를 그렸고, 정의를 오른쪽 클릭하면 `삭제`가 한 줄로 있는 메뉴가 열렸다.
 - [o] A29 — P0, core F1131을 기다린다: 실행 중인 에이전트 섹션은 실행 중인 모든 agent CLI를 한 레벨의 한 줄씩 나열하며, 이름은 program이고 role로 실행되면 그 뒤에 role을 붙인다. 예: `codex`, `claude`, `claude manager-lead`. Input: clubhouse가 `manager-lead`를 소환해 터미널이 실행 중인데 섹션은 `실행 중인 에이전트가 없어요`를 보여 준다. Cause: 섹션은 params에 program이 있는 탭만 나열하고, `core.session.open`으로 연 owned session은 그런 탭에 없다. Expected: 섹션이 `core.sessions`의 owned session과 program 탭을 실행 중인 CLI마다 그 이름의 한 줄로 나열하며(`claude` 10개면 10줄), 섹션의 group, card, tab tree 안에 둔다. tree는 files plugin이 쓰는 유지보수되는 tree library `@pierre/trees`로 그린다. Red/Green test가 있다.
   - [o] A29-1 — tree는 실행 중인 agent CLI마다 한 줄을 가진다. params에 program이 있는 탭, owned session을 보여 주는 탭(그 session의 params로), 어떤 탭도 보여 주지 않는 owned session(owner 탭의 card 안)이다. 각 줄의 이름은 program과 그 뒤의 role이다. Red: `test/running.test.mjs`의 test 4개가 실패했고, 그중 하나는 한 program의 session 10개다. Green: `pnpm test`가 통과한다.

@@ -208,7 +208,8 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.47" });
+  // Core 0.0.51 reports the app of the program state of each tab in core.grid (core F1133), which names a CLI started in a shell (A29-3).
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.51" });
   assert.deepEqual(pkg.files, ["plugin.json", "ui"]);
   assert.equal(pkg.private, true);
 });
