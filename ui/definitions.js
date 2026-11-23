@@ -12,6 +12,8 @@ import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 import { createRequests } from "./makers-files.js";
 import { listGroup, storedChanges, writeGroup } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
+import { definitionNodes } from "./tree-paths.js";
+import { createTreeView } from "./tree-view.js";
 
 const CREATE = "agents.group.create";
 const DEFINE = "agents.definition.define";
@@ -48,29 +50,23 @@ let groups = {};
 let accounts = [];
 let roles = null;
 
+// The tree of the groups and their definitions, drawn by the tree library (tree-view.js) once the binder exists. A right click on a
+// definition opens a menu whose entry runs agents.definition.remove with its group and identifier.
+let tree = null;
+const treeView = () => tree ??= createTreeView(list, {
+  exposure,
+  rowOf: () => ({ name: "agents.definitions.row", command: null, params: null }),
+  picked: () => {},
+  detail: ({ member }) => (member.defined ? member.text : "정의되지 않음"),
+  menu: ({ group, member }) => [{ label: "삭제", command: REMOVE, params: { group, id: member.id } }],
+  failed: (error) => reportError("agents.definitions", `row: ${error?.message ?? error}`),
+});
+
 // Draws each group with its roles, and the group choice of the define form. Nothing is drawn before core.roles has arrived.
 function render() {
   if (roles === null) return;
   const rows = roleRows(groups, roles);
-  list.replaceChildren(...rows.map((row) => {
-    const item = document.createElement("li");
-    const head = document.createElement("p");
-    head.textContent = `${row.name} (${row.members.length})`;
-    const members = document.createElement("ul");
-    members.replaceChildren(...row.members.map((member) => {
-      const line = document.createElement("li");
-      line.textContent = member.defined ? `${member.id}: ${member.text}` : `${member.id}: 정의되지 않음`;
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.textContent = "제거";
-      line.append(remove);
-      // The button runs the command with its group and identifier; the binder connects the element to the declared command.
-      exposure.bind(remove, REMOVE, { group: row.id, id: member.id }).catch((error) => reportError("agents.definitions", `bind ${member.id}: ${error?.message ?? error}`));
-      return line;
-    }));
-    item.append(head, members);
-    return item;
-  }));
+  treeView().show(definitionNodes(rows));
   const selected = defineGroup.value;
   defineGroup.replaceChildren(...rows.map((row) => {
     const option = document.createElement("option");

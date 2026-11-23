@@ -28,9 +28,10 @@ function themeStyles() {
  * Draws a tree in holder and returns {show(nodes)}, which replaces the rows with the paths of nodes. exposure is the binder of the view;
  * rowOf(value) gives the {name, command, params} of a row, the element name and the command that a press of the row runs. picked(value)
  * is called with the value of the row that the person selects, or null when no row is selected. detail(value) is the text at the end of
- * a row, or null for none. failed reports an error of a press.
+ * a row, or null for none. menu(value) lists the {label, command, params} entries of the menu that a right click on a row opens, or
+ * is empty for no menu. rowOf may give a null command for a row that a press does not run. failed reports an error of a press.
  */
-export function createTreeView(holder, { exposure, rowOf, picked, detail, failed }) {
+export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], failed }) {
   let items = new Map();
   let syncing = false;
   const tree = new FileTree({
@@ -38,6 +39,28 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, failed
     density: "compact",
     itemHeight: ROW_HEIGHT,
     initialExpansion: "open",
+    composition: {
+      contextMenu: {
+        triggerMode: "right-click",
+        // The menu of a row: a button per entry, each connected to its declared command, which closes the menu when pressed.
+        render(item, context) {
+          if (!items.has(item.path)) return null;
+          const entries = menu(items.get(item.path));
+          if (entries.length === 0) return null;
+          const box = document.createElement("div");
+          box.className = "tree-menu";
+          for (const entry of entries) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = entry.label;
+            button.addEventListener("click", () => context.close());
+            exposure.bind(button, entry.command, entry.params, { failed }).catch(failed);
+            box.append(button);
+          }
+          return box;
+        },
+      },
+    },
     renderRowDecoration({ item }) {
       if (!items.has(item.path)) return null;
       const text = detail(items.get(item.path));
@@ -57,7 +80,7 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, failed
       if (!items.has(row.dataset.itemPath)) continue;
       const { name, command, params } = rowOf(items.get(row.dataset.itemPath));
       row.dataset.expose = name;
-      exposure.mark(row, command, params).catch(failed);
+      if (command !== null) exposure.mark(row, command, params).catch(failed);
     }
   };
   exposure.delegate(root).catch(failed);
