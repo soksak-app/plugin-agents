@@ -4,27 +4,42 @@
 import { FileTree, themeToTreeStyles } from "./vendor/trees.js";
 import { treePaths } from "./tree-paths.js";
 
-// The row height and the text size of the sidebar list, as the files tree has them.
+// The rows have the values of the files tree (the files plugin, ui/tree.js): the 12px text and the 20px row of the sidebar list, the
+// 10px gutter, the 4pt scroll bar and the colors of the app tokens, so the trees of the sections look the same.
 const ROW_HEIGHT = 20;
+const GUTTER = 10;
+const CHEVRON_INK = 2.5;
+const ROW_INK = 5.5;
+const SCROLLBAR = `
+::-webkit-scrollbar{-webkit-appearance:none;width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(127,127,127,0.22);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(127,127,127,0.42)}
+::-webkit-scrollbar-corner{background:transparent}
+`;
+// A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set; the row hides it.
+const NO_FILE_ICON = "[data-item-type='file'] > [data-item-section='icon']{display:none}";
 
-/** The tree colors: every color is a token of the page, so no default color of the library shows. */
+/** The tree colors. Every color is a var() of the app tokens, so no default color of the library shows. */
 function themeStyles() {
   const style = getComputedStyle(document.documentElement);
   const mode = document.documentElement.dataset.mode === "light" ? "light" : "dark";
   return {
     ...themeToTreeStyles({ type: mode, bg: style.getPropertyValue("--card").trim(), fg: style.getPropertyValue("--fg").trim() }),
-    "--trees-font-size-override": getComputedStyle(document.body).fontSize,
-    "--trees-font-family-override": getComputedStyle(document.body).fontFamily,
-    // The first row starts at the left edge of the section, as in the files tree.
+    "--trees-font-size-override": "12px",
+    "--trees-font-family-override": "var(--font)",
     "--trees-padding-inline-override": "0px",
     "--trees-item-margin-x-override": "0px",
-    "--trees-item-padding-x-override": "0px",
+    "--trees-item-padding-x-override": `${GUTTER + CHEVRON_INK - ROW_INK}px`,
     "--trees-bg-override": "var(--card)",
     "--trees-bg-muted-override": "var(--inset)",
     "--trees-fg-override": "var(--fg)",
     "--trees-fg-muted-override": "var(--muted)",
     "--trees-accent-override": "var(--rail)",
     "--trees-border-color-override": "var(--edge)",
+    "--trees-selected-bg-override": "var(--chip-sel)",
+    "--trees-selected-fg-override": "var(--fg)",
+    "color-scheme": mode,
   };
 }
 
@@ -44,9 +59,9 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
     itemHeight: ROW_HEIGHT,
     initialExpansion: "open",
     // The rows are agents and definitions, not files, so the library draws no file icon.
+    flattenEmptyDirectories: false,
     icons: { set: "none" },
-    // A row of an agent or a definition is a file of the library, which draws a file icon even with no icon set; the row hides it.
-    unsafeCSS: "[data-item-type='file'] > [data-item-section='icon']{display:none}",
+    unsafeCSS: SCROLLBAR + NO_FILE_ICON,
     composition: {
       contextMenu: {
         triggerMode: "right-click",

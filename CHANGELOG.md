@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A30: The trees take the font, row height, gutter, scroll bar and token colors of the files tree and span the width of the section.
 - A30: The trees draw no file icon, use the text of the section and start at its left edge; a definition row shows only `정의되지 않음` at its end, so its name keeps the width; the definitions section lists the maker groups only in the tree; the running agents section shows its empty text in place of the tree.
 - A30: The definitions section draws its groups with the tree library; a right click on a definition opens a menu that removes it.
 - A29-2: The running agents section draws its tree with the bundled `@pierre/trees`; names that repeat among siblings carry `#1`, `#2`.
