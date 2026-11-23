@@ -6,19 +6,19 @@ import { definitionNodes, runningNodes, treePaths } from "../ui/tree-paths.js";
 
 test("treePaths numbers ten rows of one name #1 to #10, so they are ten paths", () => {
   const rows = Array.from({ length: 10 }, (_, index) => ({ kind: "session", id: `s${index}`, name: "claude manager-lead", activity: null, program: null }));
-  const { paths, items } = treePaths(runningNodes([{ kind: "card", id: "c1", children: rows }]));
-  assert.deepEqual(paths, ["card/", ...rows.map((_, index) => `card/claude manager-lead #${index + 1}`)]);
-  assert.equal(items.get("card/claude manager-lead #4"), rows[3]);
+  const { paths, items } = treePaths(runningNodes([{ kind: "card", id: "c1", name: "터미널", children: rows }]));
+  assert.deepEqual(paths, ["터미널/", ...rows.map((_, index) => `터미널/claude manager-lead #${index + 1}`)]);
+  assert.equal(items.get("터미널/claude manager-lead #4"), rows[3]);
 });
 
-test("treePaths keeps a name that does not repeat, numbers cards of a group, and shows the last name of a program path", () => {
+test("treePaths keeps a name that does not repeat, names a card by its name and numbers cards of one name in a group, and shows the last name of a program path", () => {
   const tab = (id, name) => ({ kind: "tab", id, name, activity: null, program: null });
   const tree = [{ kind: "group", id: "g1", name: "Team", children: [
-    { kind: "card", id: "c3", children: [tab("t3", "claude manager-lead"), tab("t4", "/usr/local/bin/codex"), tab("t5", "claude")] },
-    { kind: "card", id: "c4", children: [tab("t6", "claude")] },
+    { kind: "card", id: "c3", name: "터미널 · Claude Code", children: [tab("t3", "claude manager-lead"), tab("t4", "/usr/local/bin/codex"), tab("t5", "claude")] },
+    { kind: "card", id: "c4", name: "터미널 · Claude Code", children: [tab("t6", "claude")] },
   ] }];
-  assert.deepEqual(treePaths(runningNodes(tree)).paths, ["Team/", "Team/card #1/", "Team/card #1/claude manager-lead",
-    "Team/card #1/codex", "Team/card #1/claude", "Team/card #2/", "Team/card #2/claude"]);
+  assert.deepEqual(treePaths(runningNodes(tree)).paths, ["Team/", "Team/터미널 · Claude Code #1/", "Team/터미널 · Claude Code #1/claude manager-lead",
+    "Team/터미널 · Claude Code #1/codex", "Team/터미널 · Claude Code #1/claude", "Team/터미널 · Claude Code #2/", "Team/터미널 · Claude Code #2/claude"]);
 });
 
 test("treePaths lists each definition group with its members by their identifiers", () => {

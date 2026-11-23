@@ -40,11 +40,11 @@ export function treePaths(nodes) {
   return { paths, items };
 }
 
-/** The tree nodes of the running agents tree of runningTree: a group by its name, a card as `card`, a row by its name. */
+/** The tree nodes of the running agents tree of runningTree: a group, a card and a row, each by its name. */
 export function runningNodes(tree) {
   return tree.map((node) => {
     if (node.kind === "group") return { label: node.name, children: runningNodes(node.children) };
-    if (node.kind === "card") return { label: "card", children: runningNodes(node.children) };
+    if (node.kind === "card") return { label: node.name, children: runningNodes(node.children) };
     return { label: node.name, value: node };
   });
 }

@@ -15,11 +15,11 @@ const grid = {
   groups: [{ id: "g1", parent: null, x: 110, y: 0, w: 130, h: 100, leader: false, group: { name: "Team", level: 1, leader: "c3" } }],
 };
 
-test("runningTree lists the agent tabs under their cards and groups, in drawn order, with the activity of each tab", () => {
+test("runningTree lists the agent tabs under their cards and groups, in drawn order, names a card by the titles of its tabs, and gives the activity of each tab", () => {
   assert.deepEqual(runningTree(grid, { t1: "running", t3: "idle" }, []), [
-    { kind: "card", id: "c1", children: [{ kind: "tab", id: "t1", name: "claude builder", activity: "running", program: null }] },
+    { kind: "card", id: "c1", name: "t1 · t0", children: [{ kind: "tab", id: "t1", name: "claude builder", activity: "running", program: null }] },
     { kind: "group", id: "g1", name: "Team", children: [
-      { kind: "card", id: "c3", children: [
+      { kind: "card", id: "c3", name: "t3 · t4", children: [
         { kind: "tab", id: "t3", name: "codex", activity: "idle", program: null },
         { kind: "tab", id: "t4", name: "codex", activity: null, program: null },
       ] },
@@ -32,7 +32,7 @@ test("runningTree counts a tab of any plugin whose params name a program, and le
     cards: [{ id: "c9", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [tab("p1", { program: "gemini" }, "other-plugin"), tab("p2", null, "terminal")] }],
     groups: [],
   }, {}, []);
-  assert.deepEqual(tree, [{ kind: "card", id: "c9", children: [{ kind: "tab", id: "p1", name: "gemini", activity: null, program: null }] }]);
+  assert.deepEqual(tree, [{ kind: "card", id: "c9", name: "p1 · p2", children: [{ kind: "tab", id: "p1", name: "gemini", activity: null, program: null }] }]);
 });
 
 test("runningTree gives a tab with no activity entry the activity null and leaves out cards and groups without agent tabs", () => {
@@ -95,8 +95,8 @@ test("runningTree names an owned session with a role, shows its program state, a
     groups: [],
   }, { t9: "running" }, sessions);
   assert.deepEqual(tree, [
-    { kind: "card", id: "c1", children: [{ kind: "session", id: "lead", name: "claude manager-lead", activity: null, program: { state: "working", pid: null } }] },
-    { kind: "card", id: "c2", children: [{ kind: "tab", id: "t9", name: "codex dev", activity: "running", program: null }] },
+    { kind: "card", id: "c1", name: "room", children: [{ kind: "session", id: "lead", name: "claude manager-lead", activity: null, program: { state: "working", pid: null } }] },
+    { kind: "card", id: "c2", name: "t9", children: [{ kind: "tab", id: "t9", name: "codex dev", activity: "running", program: null }] },
   ]);
 });
 
@@ -117,8 +117,8 @@ test("runningTree lists a tab whose program state names its app, as a CLI starte
   }, {}, []);
   const program = (app) => ({ state: "idle", pid: 7, app });
   assert.deepEqual(tree, [
-    { kind: "card", id: "c1", children: [{ kind: "tab", id: "a", name: "claude-code", activity: null, program: program("claude-code") }] },
-    { kind: "group", id: "g1", name: "Team", children: [{ kind: "card", id: "c2", children: [
+    { kind: "card", id: "c1", name: "a · b · c", children: [{ kind: "tab", id: "a", name: "claude-code", activity: null, program: program("claude-code") }] },
+    { kind: "group", id: "g1", name: "Team", children: [{ kind: "card", id: "c2", name: "d · e", children: [
       { kind: "tab", id: "d", name: "codex", activity: null, program: program("codex") },
       { kind: "tab", id: "e", name: "codex", activity: null, program: program("codex") },
     ] }] },

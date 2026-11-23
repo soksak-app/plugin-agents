@@ -23,6 +23,17 @@ const AGENT_ICON = "soksak-agent";
 const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24"><text x="12" y="20"
  font-size="22" text-anchor="middle">\u{1F916}</text></symbol></svg>`;
 
+// The menu of a right click has the look of the core picker (core packages/workbench/app.css .picker): the card background, the
+// theme border, a shadow, and one line per entry in the 12px text, with the inset color under the pointer. The library places the
+// menu in the light DOM of its container, so the page style reaches it.
+const MENU_CSS = `
+.tree-menu{min-width:120px;padding:4px;background:var(--card);border:var(--bw) solid var(--edge);border-radius:6px;
+  box-shadow:0 4px 12px rgb(0 0 0 / 0.24)}
+.tree-menu button{display:block;width:100%;padding:4px 8px;border:0;border-radius:4px;background:transparent;color:var(--fg);
+  font:inherit;font-family:var(--font);font-size:12px;text-align:left;white-space:nowrap;cursor:pointer}
+.tree-menu button:hover{background:var(--inset)}
+`;
+
 /** The tree colors. Every color is a var() of the app tokens, so no default color of the library shows. */
 function themeStyles() {
   const style = getComputedStyle(document.documentElement);
@@ -56,6 +67,12 @@ function themeStyles() {
 export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], failed }) {
   let items = new Map();
   let syncing = false;
+  if (!document.getElementById("tree-menu-style")) {
+    const style = document.createElement("style");
+    style.id = "tree-menu-style";
+    style.textContent = MENU_CSS;
+    document.head.append(style);
+  }
   const tree = new FileTree({
     paths: [],
     density: "compact",

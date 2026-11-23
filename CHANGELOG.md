@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A29-4: A card of the running agents tree is named by the titles of its tabs. The right click menu of a row has the look of the core picker, one line per entry.
 - A29-3: The running agents section lists a CLI that a person started in a shell, named by the app of its program state.
 - A30: The icon of each agent and definition row is the robot emoji in place of the sparkles icon.
 - A30: Each agent and definition row shows the Lucide sparkles icon in the icon slot of the tree.

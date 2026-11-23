@@ -43,7 +43,8 @@ function sessionProgram(entry) {
 
 /**
  * Returns the tree of the running agent CLIs of grid, a core.grid value, with activities, the core.activity tabs map of tab identifier to
- * activity, and sessions, the core.sessions list. Each node is {kind: "card" | "group", id, children}, {kind: "tab", id, name, activity,
+ * activity, and sessions, the core.sessions list. Each node is {kind: "card", id, name, children}, named by the titles of the tabs of
+ * the card joined with " · ", {kind: "group", id, name, children}, {kind: "tab", id, name, activity,
  * program} or {kind: "session", id, name, activity, program}. A tab node is a tab whose params name a program, or a tab that shows an
  * owned session whose params name one; a session node is an owned session that no tab shows, in the card of its owner tab, after the
  * tabs of that card. Each running CLI is its own row, named by agentName. program is the program state (null when there is none), and a
@@ -88,7 +89,9 @@ export function runningTree(grid, activities, sessions) {
     for (const card of cards) {
       if (card.parent !== parent) continue;
       const children = cardTabs(card);
-      if (children.length > 0) items.push({ x: card.x, y: card.y, node: { kind: "card", id: card.id, children } });
+      // A card has no name of its own; the card header shows the titles of its tabs, so the node is named by them in tab order.
+      const name = card.tabs.map((tab) => tab.title).join(" · ");
+      if (children.length > 0) items.push({ x: card.x, y: card.y, node: { kind: "card", id: card.id, name, children } });
     }
     for (const group of groups) {
       if (group.parent !== parent) continue;
