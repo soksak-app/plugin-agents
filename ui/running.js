@@ -1,6 +1,7 @@
 // The tree of the running agents section (A3 and A29 in docs/features.md): the group, card and tab tree of core.grid, with a row for
 // each running agent CLI. An agent tab is a tab of any plugin whose params name a program (core docs/spec/agent-roles.md, the
-// parameters of core.layout.open), or a tab that shows an owned session whose params name one; the section names no plugin. Its name is
+// parameters of core.layout.open), a tab that shows an owned session whose params name one, or a tab whose program state names its
+// app, such as a CLI that a person started in a shell (core docs/spec/program-state.md#value); the section names no plugin. Its name is
 // its program, with its role after it. Its activity is the value of core.activity
 // for the tab. Items of one level are in drawn order: by the top edge, then by the left edge.
 
@@ -8,18 +9,20 @@ const ACTIVITIES = ["attention", "failed", "running", "idle"];
 const PROGRAM_STATES = ["idle", "working", "blocked"];
 
 // The program state of a tab record from core.grid (core docs/spec/program-state.md#value): null, or an object whose only members are
-// state, one of PROGRAM_STATES, and pid, a positive integer or null. Throws with the text of the rule when the member is missing or not of that form.
+// state, one of PROGRAM_STATES, pid, a positive integer or null, and app, the name of the program or null. Throws with the text of the
+// rule when the member is missing or not of that form.
 function programState(tab) {
   if (!Object.hasOwn(tab, "program")) throw new Error(`core.grid tab ${tab.tab} has no program member`);
   const { program } = tab;
   if (program === null) return null;
   const keys = program !== null && typeof program === "object" ? Object.keys(program).sort() : [];
-  const shaped = keys.length === 2 && keys[0] === "pid" && keys[1] === "state";
+  const shaped = keys.length === 3 && keys[0] === "app" && keys[1] === "pid" && keys[2] === "state";
   const pidOk = program?.pid === null || (Number.isInteger(program?.pid) && program.pid > 0);
-  if (!shaped || !PROGRAM_STATES.includes(program.state) || !pidOk) {
-    throw new Error(`program of tab ${tab.tab} must be null or an object with state idle, working or blocked and pid an integer or null`);
+  const appOk = program?.app === null || (typeof program?.app === "string" && program.app.length > 0);
+  if (!shaped || !PROGRAM_STATES.includes(program.state) || !pidOk || !appOk) {
+    throw new Error(`program of tab ${tab.tab} must be null or an object with state idle, working or blocked, pid an integer or null and app a text or null`);
   }
-  return { state: program.state, pid: program.pid };
+  return { state: program.state, pid: program.pid, app: program.app };
 }
 
 // The name of a running agent CLI from the params that started it: its program, and its role after it when it runs with one; null when
@@ -66,7 +69,8 @@ export function runningTree(grid, activities, sessions) {
       const program = programState(tab);
       // A tab that shows an owned session runs the CLI that the session started.
       const shown = typeof tab.params?.session === "string" ? sessionOf.get(tab.params.session) : undefined;
-      const name = agentName(shown === undefined ? tab.params : shown.params);
+      // A CLI that a person started in a shell has no params of a program and is named by the app of its program state.
+      const name = agentName(shown === undefined ? tab.params : shown.params) ?? program?.app ?? null;
       return name === null ? [] : [{ kind: "tab", id: tab.tab, name, activity: activities[tab.tab] ?? null, program }];
     });
     const owners = new Set(card.tabs.map((tab) => tab.tab));

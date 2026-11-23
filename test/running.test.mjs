@@ -50,18 +50,20 @@ test("runningTree gives each agent tab its program state from core.grid, or null
   const withProgram = (id, params, program) => ({ ...tab(id, params), program });
   const tree = runningTree({
     cards: [{ id: "c5", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [
-      withProgram("a1", { program: "claude" }, { state: "working", pid: 4242 }),
-      withProgram("a2", { program: "codex" }, { state: "blocked", pid: null }),
+      withProgram("a1", { program: "claude" }, { state: "working", pid: 4242, app: "claude-code" }),
+      withProgram("a2", { program: "codex" }, { state: "blocked", pid: null, app: null }),
       withProgram("a3", { program: "gemini" }, null),
     ] }],
     groups: [],
   }, {}, []);
-  assert.deepEqual(tree[0].children.map((row) => row.program), [{ state: "working", pid: 4242 }, { state: "blocked", pid: null }, null]);
+  assert.deepEqual(tree[0].children.map((row) => row.program), [{ state: "working", pid: 4242, app: "claude-code" }, { state: "blocked", pid: null, app: null }, null]);
 });
 
 test("runningTree refuses a program value that is not null or an object with state idle, working or blocked and pid", () => {
-  const broken = { cards: [{ id: "c6", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [{ ...tab("b1", { program: "claude" }), program: { state: "busy", pid: 1 } }] }], groups: [] };
-  assert.throws(() => runningTree(broken, {}, []), /program of tab b1 must be null or an object with state idle, working or blocked and pid an integer or null/);
+  const broken = { cards: [{ id: "c6", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [{ ...tab("b1", { program: "claude" }), program: { state: "busy", pid: 1, app: null } }] }], groups: [] };
+  assert.throws(() => runningTree(broken, {}, []), /program of tab b1 must be null or an object with state idle, working or blocked, pid an integer or null and app a text or null/);
+  const noApp = { cards: [{ id: "c6", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [{ ...tab("b1", null), program: { state: "idle", pid: 1 } }] }], groups: [] };
+  assert.throws(() => runningTree(noApp, {}, []), /program of tab b1 must be null or an object with state idle, working or blocked, pid an integer or null and app a text or null/);
 });
 
 // A29: each running agent CLI is one row named by its program and, when it runs with a role, the role after it; an owned session
@@ -100,4 +102,25 @@ test("runningTree names an owned session with a role, shows its program state, a
 
 test("runningTree refuses a sessions value that is not a list", () => {
   assert.throws(() => runningTree(grid, {}, {}), /core.sessions is not a list/);
+});
+
+// A29-3: a known agent CLI that a person started in a shell has no params of a program; its tab is a row named by the app of its program
+// state, in its card and group, and a tab whose program state names no app stays out.
+test("runningTree lists a tab whose program state names its app, as a CLI started in a shell, under its card and group", () => {
+  const shell = (id, app) => ({ ...tab(id, null), program: { state: "idle", pid: 7, app } });
+  const tree = runningTree({
+    cards: [
+      { id: "c1", parent: null, x: 0, y: 0, w: 1, h: 1, leader: true, tabs: [shell("a", "claude-code"), shell("b", null), tab("c", null)] },
+      { id: "c2", parent: "g1", x: 0, y: 10, w: 1, h: 1, leader: true, tabs: [shell("d", "codex"), shell("e", "codex")] },
+    ],
+    groups: [{ id: "g1", parent: null, x: 0, y: 10, w: 1, h: 1, leader: false, group: { name: "Team", level: 1, leader: "c2" } }],
+  }, {}, []);
+  const program = (app) => ({ state: "idle", pid: 7, app });
+  assert.deepEqual(tree, [
+    { kind: "card", id: "c1", children: [{ kind: "tab", id: "a", name: "claude-code", activity: null, program: program("claude-code") }] },
+    { kind: "group", id: "g1", name: "Team", children: [{ kind: "card", id: "c2", children: [
+      { kind: "tab", id: "d", name: "codex", activity: null, program: program("codex") },
+      { kind: "tab", id: "e", name: "codex", activity: null, program: program("codex") },
+    ] }] },
+  ]);
 });
