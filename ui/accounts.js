@@ -9,8 +9,6 @@ const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 const MEMBERS = ["args", "cli", "env", "home", "id"];
 // The variable through which each agent CLI reads its configuration home, by the last path segment of cli.
 const HOME_VARIABLES = { claude: "CLAUDE_CONFIG_DIR", codex: "CODEX_HOME" };
-// The arguments after the cli that start its login in an empty home: claude asks for the login at its first start.
-const LOGIN_ARGS = { claude: [], codex: ["login"] };
 const WHERE = "projects.json plugins.agents.accounts";
 
 // Throws with the text of the rule when the value is not a list of accounts with the members id, cli, args and env, and no repeated
@@ -127,19 +125,12 @@ export function loginOf(account, reply) {
   return { login: status.loggedIn, expires: status.loginExpiresAt };
 }
 
-// The parameters of core.layout.open for the terminal tab that runs the cli in the home of the account, in the working folder in which
-// its members start: the first start of claude asks for the text style, the login and the trust of that folder, which the person answers
-// once; codex login ends after the login.
-export function loginTab(account, terminalPlugin, directory) {
+// The declared program and its arguments that run the login of the account in its home: login.mjs runs claude auth login or codex login
+// and hands the sign-in address to the definition dialog (docs/spec/definitions.md#account-homes).
+export function loginProgram(account) {
   if (account.home === null) throw new Error(`account ${account.id} has no home`);
-  if (typeof directory !== "string" || !directory.startsWith("/")) {
-    throw new Error(`the login of account ${account.id} needs an absolute working folder, not ${directory}`);
-  }
-  const name = account.home.variable === HOME_VARIABLES.claude ? "claude" : "codex";
-  return {
-    card: "current", plugin: terminalPlugin,
-    params: { program: "env", args: [`${account.home.variable}=${account.home.folder}`, account.cli, ...LOGIN_ARGS[name]], directory, title: `${account.id} 로그인` },
-  };
+  const kind = account.home.variable === HOME_VARIABLES.claude ? "claude" : "codex";
+  return { name: `${kind}-login`, args: [kind, account.home.folder, account.cli] };
 }
 
 // The arguments of the declared program account-home, which creates the home folder with mode 0700.

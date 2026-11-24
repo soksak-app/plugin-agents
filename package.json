@@ -11,11 +11,17 @@
     "url": "git+https://github.com/soksak-app/plugin-agents.git"
   },
   "engines": {
-    "soksak": "^0.0.53"
+    "soksak": "^0.0.54"
+  },
+  "bin": {
+    "sok-agents-login": "bin/login.mjs",
+    "sok-agents-login-page": "bin/login-page.mjs",
+    "sok-agents-home-settings": "bin/home-settings.mjs"
   },
   "files": [
     "plugin.json",
-    "ui"
+    "ui",
+    "bin"
   ],
   "scripts": {
     "test": "node --test --test-timeout=120000 test/",

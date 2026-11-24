@@ -63,10 +63,11 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
 });
 
 // The dialogs of the definitions section (A28, A31): each dialog is a page of the release, which the view opens with runtime.dialog.open.
-test("plugin.json declares the dialogs group and definition as dialog pages of the release", () => {
+// The definition dialog shows the sign-in page of a login in its document region login (docs/spec/definitions.md#account-homes).
+test("plugin.json declares the dialogs group and definition as dialog pages of the release, the definition dialog with the region login", () => {
   assert.deepEqual(manifest.dialogs, {
     group: { page: "ui/group-dialog.html" },
-    definition: { page: "ui/definition-dialog.html" },
+    definition: { page: "ui/definition-dialog.html", regions: [{ name: "login", kind: "document", input: "native" }] },
   });
   for (const dialog of Object.values(manifest.dialogs)) {
     assert.ok(exists(dialog.page), `${dialog.page} does not exist`);
@@ -123,13 +124,17 @@ test("plugin.json declares the project data keys groups, definitions and account
 
 // The account commands of the definition dialog (A2, A36): define adds an account with its home, remove keeps the home, and login opens
 // the login of the cli in the home (docs/spec/definitions.md#account-homes).
-test("plugin.json declares the commands agents.account.define, agents.account.remove and agents.account.login with their parameters and results", () => {
+test("plugin.json declares the commands agents.account.define, agents.account.remove, agents.account.login and agents.account.login.cancel with their parameters and results", () => {
   const commands = manifest.exposes.commands.filter((command) => command.name.startsWith("agents.account."));
   assert.deepEqual(commands, [
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card, in the working folder cwd, that runs the cli of the account in its home folder with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder: claude asks for its text style, its login and the trust of the folder, and codex runs its login. Closes the definition dialog. Refuses an account without a home and a cwd that is not an absolute path.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cwd": {"type": "string"}}, "required": ["id", "cwd"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.account.login", "description": "Runs the login of the account inside the definition dialog: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the dialog, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
+    {"name": "agents.account.login.cancel", "description": "Ends the open login of the definition dialog; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
   ]);
+  // The login program hands the sign-in address to the dialog with this command, which loads it in the region login.
+  assert.deepEqual(manifest.exposes.commands.find((command) => command.name === "agents.definition-dialog.sign-in"),
+    {"name": "agents.definition-dialog.sign-in", "description": "Shows the sign-in address of the open login in the region of the definition dialog. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}});
 });
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
@@ -184,7 +189,9 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
     },
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card, in the working folder cwd, that runs the cli of the account in its home folder with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder: claude asks for its text style, its login and the trust of the folder, and codex runs its login. Closes the definition dialog. Refuses an account without a home and a cwd that is not an absolute path.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cwd": {"type": "string"}}, "required": ["id", "cwd"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.account.login", "description": "Runs the login of the account inside the definition dialog: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the dialog, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
+    {"name": "agents.account.login.cancel", "description": "Ends the open login of the definition dialog; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
+    {"name": "agents.definition-dialog.sign-in", "description": "Shows the sign-in address of the open login in the region of the definition dialog. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}},
     {
       name: "agents.group.open",
       description: "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
@@ -226,28 +233,33 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  // Core 0.0.53 gives every view the data folder of its plugin (core F1153), in which the account homes live, and runs the programs of a
-  // plugin with sections only (core F1152), which the account homes run.
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.53" });
-  assert.deepEqual(pkg.files, ["plugin.json", "ui"]);
+  // Core 0.0.54 gives a dialog its document regions (core F1163), in which the definition dialog shows the sign-in page.
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.54" });
+  assert.deepEqual(pkg.files, ["plugin.json", "ui", "bin"]);
+  // The pack keeps the executable mode only of the files that bin names, and the host runs each program file as an executable.
+  assert.deepEqual(pkg.bin, { "sok-agents-login": "bin/login.mjs", "sok-agents-login-page": "bin/login-page.mjs", "sok-agents-home-settings": "bin/home-settings.mjs" });
   assert.equal(pkg.private, true);
 });
 
 // The status agents.definitions (A13) is removed: the room reads the stored definitions and accounts (F1075), so no status is declared.
-test("plugin.json declares the status agents.definition-dialog.accounts with the login of each account and its end", () => {
-  assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts"]);
+test("plugin.json declares the statuses agents.definition-dialog.accounts with the login of each account and agents.definition-dialog.login-run with the open login", () => {
+  assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts", "agents.definition-dialog.login-run"]);
   assert.deepEqual(manifest.exposes.status[0].schema.properties.accounts.items.required, ["id", "cli", "login", "expires"]);
 });
 
 // The programs of the account homes (docs/spec/definitions.md#account-homes): each argument is literal or matches a pattern that keeps it
 // in the folder accounts of the data folder of the plugin; the status programs run the documented status command of the cli in a home.
-test("plugin.json declares the programs account-home, claude-status, codex-status and person-home whose arguments stay in the account homes", () => {
+test("plugin.json declares the programs of the account homes, whose arguments stay in the account homes", () => {
   assert.deepEqual(manifest.programs, {
     "account-home": { program: "/bin/mkdir", args: ["-p", "-m", "700", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
     "claude-status": { program: "/usr/bin/env", args: [{ pattern: "CLAUDE_CONFIG_DIR=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }, "auth", "status", "--json"] },
     "codex-status": { program: "/usr/bin/env", args: [{ pattern: "CODEX_HOME=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }, "login", "status"] },
     "person-home": { program: "/usr/bin/printenv", args: ["HOME"] },
+    "claude-login": { program: "plugin:bin/login.mjs", args: ["claude", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }] },
+    "codex-login": { program: "plugin:bin/login.mjs", args: ["codex", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }] },
+    "home-settings": { program: "plugin:bin/home-settings.mjs", args: [{ pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
   });
+  for (const name of ["claude-login", "codex-login", "home-settings"]) assert.ok(exists(manifest.programs[name].program.slice("plugin:".length)), `${name} has no file`);
   const full = (slot, text) => new RegExp(`^(?:${slot.pattern})$`).test(text);
   assert.ok(full(manifest.programs["account-home"].args[3], "/Users/me/Library/Application Support/app/plugin-data/agents/accounts/work"));
   assert.ok(!full(manifest.programs["account-home"].args[3], "/Users/me/plugin-data/agents/accounts/../x"));

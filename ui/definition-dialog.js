@@ -2,8 +2,8 @@
 // values name the group and an identifier. Without an identifier the save defines a new definition (agents.definition.define); with one,
 // the dialog shows the stored definition and its role from core.roles, and the save changes it (agents.definition.change). A success closes
 // the dialog. A refusal shows its text in the dialog and is written to the application log. The account select shows the login of each
-// account, the login button opens the login of the selected account, and the new account row adds an account (A36,
-// docs/spec/definitions.md#controls-and-dialogs).
+// account, the login button runs the login of the selected account inside the dialog, whose sign-in page the region login shows, and the
+// new account row adds an account (A36, A40, docs/spec/definitions.md#controls-and-dialogs).
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
@@ -18,7 +18,10 @@ const CANCEL = "agents.dialog.cancel";
 const ACCOUNT_DEFINE = "agents.account.define";
 const ACCOUNT_REMOVE = "agents.account.remove";
 const ACCOUNT_LOGIN = "agents.account.login";
+const LOGIN_CANCEL = "agents.account.login.cancel";
+const SIGN_IN = "agents.definition-dialog.sign-in";
 const LOGINS = "agents.definition-dialog.accounts";
+const LOGIN_RUN = "agents.definition-dialog.login-run";
 const ACCOUNTS = "accounts";
 const DEFINITIONS = "definitions";
 const WHERE = "agents.definition-dialog";
@@ -55,6 +58,9 @@ const textField = document.getElementById("text");
 const koField = document.getElementById("ko");
 const filesField = document.getElementById("files");
 const loginButton = document.getElementById("login");
+const loginCancelButton = document.getElementById("login-cancel");
+const loginPage = document.getElementById("login-page");
+const card = document.querySelector(".card");
 const accountIdField = document.getElementById("account-id");
 const accountCliField = document.getElementById("account-cli");
 const accountAddButton = document.getElementById("account-add");
@@ -91,9 +97,19 @@ async function showAccounts(selected) {
   for (const watcher of loginWatchers) watcher({ accounts: logins });
 }
 
-// The login button is enabled while the selected account has no login in its home.
+// The open login {id, url, page, controller}, or null. url is the sign-in address, null before the login program hands it over, and page
+// the last document state of the region login {url, title, loading, error}, null before the region reports one.
+let run = null;
+const runWatchers = new Set();
+const runValue = () => (run === null ? null : { id: run.id, url: run.url, page: run.page });
+
+// The login button is enabled while the selected account has no login in its home and no login runs; during a login the cancel button
+// stands in its place.
 function showLogin() {
-  loginButton.disabled = logins.find((row) => row.id === accountField.value)?.login !== false;
+  loginButton.hidden = run !== null;
+  loginCancelButton.hidden = run === null;
+  loginButton.disabled = run !== null || logins.find((row) => row.id === accountField.value)?.login !== false;
+  for (const watcher of runWatchers) watcher(runValue());
 }
 
 // The command agents.account.define {id, cli, args, env}: adds the account and selects it.
@@ -112,11 +128,39 @@ async function removeAccount(values) {
   return result;
 }
 
-// The command agents.account.login {id, cwd}: opens the login tab of the account in the working folder and closes the dialog, which covers that tab.
+// The command agents.account.login {id}: runs the login of the account in the dialog. The end of the run hides the sign-in page and reads
+// the login of the accounts again.
 async function login(values) {
-  const result = await loginAccount(api, values);
-  await bridge.runtime.dialog.close(null);
-  return result;
+  if (run !== null) throw new Error(`the login of account ${run.id} is running`);
+  run = { id: values.id, url: null, page: null, controller: new AbortController() };
+  showLogin();
+  try {
+    return await loginAccount(api, values, { signal: run.controller.signal });
+  } finally {
+    run = null;
+    loginPage.hidden = true;
+    card.classList.remove("signing");
+    showLogin();
+    await showAccounts(accountField.value);
+  }
+}
+
+// The command agents.account.login.cancel: ends the open login, whose command then ends with cancelled.
+async function cancelLogin() {
+  run?.controller.abort();
+  return null;
+}
+
+// The command agents.definition-dialog.sign-in {url}: the login program hands the sign-in address, which the region login loads.
+async function signIn({ url }) {
+  if (run === null) throw new Error("no login of the definition dialog is open");
+  if (typeof url !== "string" || !url.startsWith("https://")) throw new Error(`the sign-in address ${url} is not https`);
+  run.url = url;
+  card.classList.add("signing");
+  loginPage.hidden = false;
+  await signInRegion.load(url);
+  showLogin();
+  return null;
 }
 
 // The command agents.dialog.cancel: closes the dialog without a change.
@@ -125,6 +169,15 @@ async function cancel() {
   return null;
 }
 
+// The region login shows the sign-in page of a login (core F1163: a dialog declares its regions).
+const composition = await bridge.composition.create({ regions: { login: loginPage }, overlays: {} });
+const signInRegion = composition.region("login");
+signInRegion.onState((state) => {
+  if (run === null) return;
+  run.page = { url: state.url, title: state.title, loading: state.loading, error: state.error };
+  showLogin();
+});
+
 await Promise.all([
   exposure.command(save, saveDefinition), bridge.commands.register(save, saveDefinition),
   exposure.command(CANCEL, cancel), bridge.commands.register(CANCEL, cancel),
@@ -132,6 +185,9 @@ await Promise.all([
   exposure.command(ACCOUNT_DEFINE, addAccount), bridge.commands.register(ACCOUNT_DEFINE, addAccount),
   exposure.command(ACCOUNT_REMOVE, removeAccount), bridge.commands.register(ACCOUNT_REMOVE, removeAccount),
   exposure.command(ACCOUNT_LOGIN, login), bridge.commands.register(ACCOUNT_LOGIN, login),
+  exposure.command(LOGIN_CANCEL, cancelLogin), bridge.commands.register(LOGIN_CANCEL, cancelLogin),
+  exposure.command(SIGN_IN, signIn), bridge.commands.register(SIGN_IN, signIn),
+  exposure.status(LOGIN_RUN, runValue, (watcher) => { runWatchers.add(watcher); return () => runWatchers.delete(watcher); }),
 ]);
 await Promise.all([
   exposure.element("agents.definition-dialog.name", nameField),
@@ -153,7 +209,10 @@ await Promise.all([
   exposure.element("agents.definition-dialog.account-id", accountIdField),
   exposure.element("agents.definition-dialog.account-cli", accountCliField),
   exposure.element("agents.definition-dialog.account-add", accountAddButton),
-  exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value, cwd: cwdField.value }), { failed: refused }),
+  exposure.element("agents.definition-dialog.login-cancel", loginCancelButton),
+  exposure.element("agents.definition-dialog.login-page", loginPage),
+  exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value }), { failed: refused }),
+  exposure.bind(loginCancelButton, LOGIN_CANCEL, {}, { failed: refused }),
   exposure.mark(accountIdField, ACCOUNT_DEFINE, null, "id"),
   exposure.mark(accountCliField, ACCOUNT_DEFINE, null, "cli"),
   exposure.bind(accountAddButton, ACCOUNT_DEFINE, () => ({ id: accountIdField.value.trim(), cli: accountCliField.value.trim(), args: [], env: [] }), { failed: refused }),

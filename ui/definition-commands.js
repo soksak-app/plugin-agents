@@ -4,7 +4,7 @@
 // values. The rules of each store are those of groups.js, accounts.js,
 // definition-records.js and roles.js.
 import { createGroup, parseGroups } from "./groups.js";
-import { defineAccount, homeFolderArgs, loginOf, loginTab, parseAccounts, removeAccount, statusProgram } from "./accounts.js";
+import { defineAccount, homeFolderArgs, loginOf, loginProgram, parseAccounts, removeAccount, statusProgram } from "./accounts.js";
 import { defineDefinition, definitionsUsingAccount, parseDefinitions } from "./definition-records.js";
 import { addMember, parseFiles } from "./roles.js";
 
@@ -93,15 +93,22 @@ export async function removeAccountRecord(api, { id }) {
   return null;
 }
 
-// The command agents.account.login {id, cwd}: opens a terminal tab in the current card that runs the cli in the home of the account in the
-// working folder cwd, so the person passes the first start of the cli, its login and the trust of that folder once.
-export async function loginAccount(api, { id, cwd }) {
+// The command agents.account.login {id}: creates the home, runs the login program of the account, which hands the sign-in address to the
+// definition dialog, then copies the settings of the person into a home of claude and reads the login again (docs/spec/definitions.md#account-homes).
+// signal ends the run, and the command then ends with cancelled.
+export async function loginAccount(api, { id }, { signal }) {
   const account = parseAccounts((await api.data.get(ACCOUNTS)) ?? []).find((entry) => entry.id === id);
   if (account === undefined) throw new Error(`account ${id} is not defined`);
-  const tab = loginTab(account, await terminalPlugin(api), cwd);
+  const program = loginProgram(account);
   await createHome(api, account);
-  await api.calls.request("core.layout.open", tab);
-  return { id };
+  const reply = await api.program.run(program.name, program.args, { signal });
+  if (reply.code !== 0) throw new Error(`login of account ${id} ended with status ${reply.code}: ${reply.stderr.trim()}`);
+  if (account.home.variable === "CLAUDE_CONFIG_DIR") {
+    const shared = await api.program.run("home-settings", [account.home.folder]);
+    if (shared.code !== 0) throw new Error(`settings of account ${id}: home-settings ended with status ${shared.code}: ${shared.stderr.trim()}`);
+  }
+  const [row] = await accountLogins(api, [account]);
+  return { id, login: row.login };
 }
 
 // The login of each account, {id, cli, login, expires}, in the order of the identifiers: login is true or false from the status program

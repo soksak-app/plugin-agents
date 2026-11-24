@@ -2,7 +2,7 @@
 // The rules are those of ui/accounts.js; the literal values are the expectations (docs/spec/definitions.md#account-homes).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defineAccount, homeOf, loginOf, loginTab, parseAccounts, removeAccount, statusProgram } from "../ui/accounts.js";
+import { defineAccount, homeOf, loginOf, loginProgram, parseAccounts, removeAccount, statusProgram } from "../ui/accounts.js";
 
 const DATA = "/config/plugin-data/agents";
 const CLAUDE = { id: "claude-main", cli: "claude", args: ["--verbose"], env: ["ANTHROPIC_API_KEY"], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude-main` } };
@@ -91,12 +91,8 @@ test("loginOf reads the login of a codex home from the exit status of codex logi
   assert.throws(() => loginOf(CODEX, reply(2, "")), /login of account codex-main: codex-status ended with status 2/);
 });
 
-test("loginTab opens a terminal tab in the working folder that runs the cli in the home of the account", () => {
-  assert.deepEqual(loginTab(CLAUDE, "terminal", "/work/site"), {
-    card: "current", plugin: "terminal",
-    params: { program: "env", args: [`CLAUDE_CONFIG_DIR=${CLAUDE.home.folder}`, "claude"], directory: "/work/site", title: "claude-main 로그인" },
-  });
-  assert.deepEqual(loginTab(CODEX, "terminal", "/work/site").params.args, [`CODEX_HOME=${CODEX.home.folder}`, "codex", "login"]);
-  assert.throws(() => loginTab(OTHER, "terminal", "/work/site"), /account gemini has no home/);
-  assert.throws(() => loginTab(CLAUDE, "terminal", "work/site"), /the login of account claude-main needs an absolute working folder, not work\/site/);
+test("loginProgram runs the login program of the cli in the home of the account", () => {
+  assert.deepEqual(loginProgram(CLAUDE), { name: "claude-login", args: ["claude", CLAUDE.home.folder, "claude"] });
+  assert.deepEqual(loginProgram({ ...CODEX, cli: "/opt/bin/codex" }), { name: "codex-login", args: ["codex", CODEX.home.folder, "/opt/bin/codex"] });
+  assert.throws(() => loginProgram(OTHER), /account gemini has no home/);
 });
