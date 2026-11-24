@@ -10,8 +10,7 @@ import { parseAccounts } from "./accounts.js";
 import { parseDefinitions, removeDefinition } from "./definition-records.js";
 import { removeMember, roleRows } from "./roles.js";
 import { changeDefinitionRecord, createGroupRecord, defineDefinitionRecord, terminalPlugin, createHome } from "./definition-commands.js";
-import { createRequests } from "./makers-files.js";
-import { listGroup, storedChanges, writeGroup } from "./makers-import.js";
+import { listGroup, storedChanges } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
 import { definitionMenu, definitionNodes } from "./tree-paths.js";
 import { createTreeView } from "./tree-view.js";
@@ -25,8 +24,6 @@ const OPEN_DEFINITION = "agents.definition.open";
 const KEY = "groups";
 const DEFINITIONS = "definitions";
 const ACCOUNTS = "accounts";
-const WRITE = "agents.group.write";
-const SIDECAR = "@soksak/sidecar-files";
 
 // Errors that occur before the bridge exists wait in losses and are written to the application log once it does.
 const losses = [];
@@ -52,8 +49,7 @@ let records = {};
 let roles = null;
 
 // The tree of the groups and their definitions, drawn by the tree library (tree-view.js) once the binder exists. A right click on a
-// definition opens a menu whose entries run agents.group.write for a connected maker group and agents.definition.remove with its group
-// and identifier.
+// definition opens a menu whose entry runs agents.definition.remove with its group and identifier.
 let tree = null;
 const treeView = () => tree ??= createTreeView(list, {
   exposure,
@@ -64,7 +60,7 @@ const treeView = () => tree ??= createTreeView(list, {
   // the dialog of that definition.
   folderAction: ({ group }) => ({ name: "agents.definitions.add-definition", label: "+", title: "정의 추가", command: OPEN_DEFINITION, params: { group } }),
   activate: { command: OPEN_DEFINITION, params: ({ group, member }) => ({ group, id: member.id }) },
-  menu: (value) => definitionMenu(value, makers.map((entry) => entry.item.id)),
+  menu: (value) => definitionMenu(value),
   failed: (error) => reportError("agents.definitions", `row: ${error?.message ?? error}`),
 });
 
@@ -130,16 +126,8 @@ async function remove({ group, id }) {
 
 const exposure = createExpose(exposurePort(bridge, "agents.definitions", reportError), () => start.declarations);
 
-// The files sidecar of the section writes the files of a maker group (A17-3). Its replies reach requests, which pairs each with its request.
-const files = bridge.runtime.sidecar(SIDECAR);
-const requests = createRequests((body) => files.send(start.surface, body, []));
-const onSidecar = (body) => {
-  if (!requests.receive(body)) reportError("agents.definitions", `files sidecar sent a message that no request waits for: ${JSON.stringify(body)}`);
-};
-const onSidecarFailure = (reason) => reportError("agents.definitions", `files sidecar failed: ${reason}`);
-
 // The connected maker groups of agents.makers. A group is listed (docs/spec/makers.md#listing) on load and on each change of
-// core.contributions, and written by the command agents.group.write {group}; its stored group shows in the tree.
+// core.contributions; its stored group shows in the tree, and its sessions load the maker folder through the launch of each definition.
 let makers = [];
 
 // The stored values that a listing reads: the groups, the definitions and the accounts of the project.
@@ -166,10 +154,13 @@ async function listMakers() {
     }
     try {
       const stored = await readStored();
-      const next = listGroup({ group: contributed, stored, plugin: await terminalPlugin(api), root: start.project.root, dataFolder: start.dataFolder });
+      const personHome = contributed.clis.includes("codex") ? await personHomeOf() : null;
+      const next = listGroup({ group: contributed, folder: entry.folder, personHome, stored, plugin: await terminalPlugin(api), root: start.project.root, dataFolder: start.dataFolder });
       // An account that the listing creates has its home folder before it is stored (docs/spec/definitions.md#account-homes).
       for (const account of next.accounts) if (!stored.accounts.some((entry) => entry.id === account.id)) await createHome(api, account);
       for (const key of storedChanges(stored, next)) await bridge.runtime.data.change(key, () => next[key]);
+      // core.role.define of an equal definition writes nothing, so every listing defines the roles of the group (core docs/spec/agent-roles.md).
+      for (const role of next.roles) await bridge.calls.request("core.role.define", role);
     } catch (error) {
       reportError("agents.definitions", `maker group ${entry.item.id} could not be listed: ${error?.message ?? error}`);
     }
@@ -190,20 +181,15 @@ async function reloadMakers() {
   await listing;
 }
 
-// The command agents.group.write {group}: writes the files of the maker group of the connected item with that identifier and defines its
-// roles (docs/spec/makers.md#writing). The module's group() is checked first; an invalid group marks its item invalid. A refused file or a
-// refusal of core stops the command with its text.
-async function writeMaker({ group }) {
-  const entry = makers.find((candidate) => candidate.item.id === group);
-  if (entry === undefined) throw new Error(`maker group ${group} is not connected`);
-  let contributed;
-  try {
-    contributed = parseMakerGroup(await (await import(entry.module)).group(), entry.item.id);
-  } catch (error) {
-    entry.fail(error instanceof Error ? error.message : String(error));
-    throw error;
-  }
-  return writeGroup({ group: contributed, root: start.project.root, requests, define: (params) => bridge.calls.request("core.role.define", params) });
+// The home of the person, which a codex session of a maker folder gives to the commands that it runs (docs/spec/makers.md#listing): the
+// output of the declared program person-home, printenv HOME.
+async function personHomeOf() {
+  const reply = await bridge.runtime.program.run("person-home", []);
+  if (reply.code !== 0) throw new Error(`person-home exited with ${reply.code}: ${reply.stderr.trim()}`);
+  if (reply.truncated.stdout || reply.truncated.stderr) throw new Error("person-home: output was truncated");
+  const home = reply.stdout.replace(/\n$/, "");
+  if (!home.startsWith("/") || home.includes("\n")) throw new Error(`person-home printed ${JSON.stringify(reply.stdout)}, not one absolute path`);
+  return home;
 }
 
 // The commands take their values from their caller. The header button and the + of a group row run the commands that open the dialogs
@@ -213,7 +199,6 @@ await Promise.all([
   exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
   exposure.command(CHANGE, change), bridge.commands.register(CHANGE, change),
   exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
-  exposure.command(WRITE, writeMaker), bridge.commands.register(WRITE, writeMaker),
   exposure.command(OPEN_GROUP, openGroup), bridge.commands.register(OPEN_GROUP, openGroup),
   exposure.command(OPEN_DEFINITION, openDefinition), bridge.commands.register(OPEN_DEFINITION, openDefinition),
 ]);
@@ -221,6 +206,4 @@ bridge.runtime.status.watch("core.roles", (value) => { roles = value; render(); 
 bridge.runtime.data.on(() => { reload(); });
 bridge.runtime.status.watch("core.contributions", () => { reloadMakers(); });
 await reload();
-await files.on(start.surface, onSidecar);
-await files.onFailure(start.surface, onSidecarFailure);
 await reloadMakers();

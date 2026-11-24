@@ -8,51 +8,36 @@ The extension point `agents.makers` is declared in `plugin.json` `extends` as `m
 
 The contributed `module` exports the function `group`. The provider imports the module and calls `group()` for each connected item, as the extension point rule of the core plugin specification states. `group()` takes no argument and returns the group object, or a promise of it. A group whose `id` differs from the item `id`, or whose object does not match the schema below, is an invalid item and is not shown.
 
-Paths in `files` and the `path` of each agent are project paths: forward slashes, no leading slash and no `..` segment. Each of them lies inside a folder of `folders`. The other paths of the group object are not read by the provider.
+`plugin` is a path relative to the installed folder of the contributing plugin, which the connected item gives as `folder` (core F1154); the `path` of each agent is relative to the folder that `plugin` names. Both use forward slashes and hold no leading slash and no `..` segment. The entries of `folders` are project paths of the same form.
 
 ## Group object
 
-The group object has these members. Required members must be present; optional members are not declared by this interface.
+The group object has these members. Required members must be present; optional members are not declared by this interface, and a member outside this list makes the group invalid.
 
 - `id`, `name`: the identifier and display name of the group, the same as the item.
-- `plugin` (required): the folder of the corrected plugin that the agent CLI loads with its plugin directory option.
+- `plugin` (required): the maker folder, which the maker fills when it is packed and which no write changes. A Claude Code session of the group loads it twice: with `--plugin-dir`, which registers the hooks of its `hooks/hooks.json` and puts its `bin/` folder on the `PATH` of the Bash tool, and with `--add-dir`, which loads the agents of its `.claude/agents/` and the skills of its `.claude/skills/` under their own names, so the texts of the group call them as they are written. Its `.claude/rules/` holds the rule files that the texts name by the path `.claude/rules/...`, which the agents read from the added folder. A codex session of the group reads the skills of its `.agents/skills/`.
 - `clis` (required): the CLIs that the group runs, each `claude` or `codex`. A group whose agents need claude hooks lists `claude` only.
-- `agents` (required): the agent definitions. Each has `name`, `path` (the project path of the Markdown file of the definition, which must equal the `path` of one entry of `files`), `cli` (`claude` or `codex`, required: the CLI that runs this agent), `port` (optional integer: the port of the agent's own web page, required when the agent serves one, such as the moai web view) and `model` (optional: the model of the definition).
-- `skills` (required): the folders of the skills of the group. Every file of a skill folder is an entry of `files`.
-- `variables` (required): environment variables of the agent process as an object of name to value. A value may hold the token `{home}`, which the agents plugin replaces with the home folder of the agent account.
-- `path` (required): folders that the agent process prepends to `PATH`.
+- `agents` (required): the agent definitions. Each has `name`, `path` (the Markdown file of the definition, relative to the maker folder, such as `.claude/agents/manager-spec.md`), `cli` (`claude` or `codex`, required: the CLI that runs this agent), `port` (optional integer: the port of the agent's own web page, required when the agent serves one, such as the moai web view) and `model` (optional: the model of the definition).
+- `variables` (required): environment variables of the agent process as an object of name to text. A value may hold the token `{home}`, the home folder of the agent account, and the token `{plugin}`, the absolute maker folder.
 - `folders` (required): folders that the group creates in the project, each ending with `/`, such as `.moai/`, `.harness/` or `.superpowers/`.
 - `rules` (required): instruction lines that the room appends to the agent prompt, such as the location rules of the group's outputs. An empty list is allowed.
-- `files` (required): the files of the group as `{path, text, executable?}` entries, `path` a project path inside a folder of `folders`, `text` the corrected content of the file and `executable` (optional boolean, default `false`) whether the write sets the execute bit of the file. The maker builds this list when it is packed, from its own corrected files. Each path is unique. A non-boolean `executable` makes the group invalid, as the schema below states.
 
-The outputs of a group go only to the folders in `folders`. The rules of a group name these locations, for example `.superpowers/plans/` for plans.
+The outputs of a group go only to the folders in `folders`. The rules of a group name these locations, for example `.superpowers/plans/` for plans. No file of the maker folder is written into a project, so a group runs only in the sessions that start with its folder and no other project or definition sees it.
 
-The maker plugins that contribute groups are moai (`.moai/`, claude only, one port per agent for its web view), harness (`.harness/`) and superpowers (`.superpowers/`, locations in the rules). Each maker plugin corrects its own files and builds `files` from them when it is packed. The write writes exactly the paths of `files` and no other file: it never overwrites or removes a project file outside `files`. `folders` may name `.claude/`, which Claude Code reads for agents and skills, and the write does not refuse a path under it.
+The maker plugins that contribute groups are moai (`.moai/`, claude only, one port per agent for its web view), harness (`.harness/`) and superpowers (`.superpowers/`, locations in the rules). Each maker plugin corrects its own files and builds its maker folder from them when it is packed.
 
 ## Listing
 
-When the definitions section reads a connected maker group, on load and on each change of the status `core.contributions`, it stores the records of the group without any user action. The listing writes no file and defines no role. It checks the group object first, then plans the following values, and refuses the listing of that group with the text of the rule when a check fails, before any value is stored:
+When the definitions section reads a connected maker group, on load and on each change of the status `core.contributions`, it stores the records of the group and defines its roles without any user action. The listing writes no file. It checks the group object first, then plans the following values, and refuses the listing of that group with the text of the rule when a check fails, before any value is stored:
 
 1. Each agent gets the definition identifier `<group id>-<slug>`. The slug is the agent `name` in lower case, with every run of characters outside `a-z` and `0-9` replaced by one `-`, the `-` at both ends removed, and the whole identifier cut to 64 characters. An empty slug, or an identifier that repeats within the group, refuses the listing and names the agent.
 2. The account of an agent is the account whose `cli` equals the agent `cli`. When none exists, the listing creates it as defined in [definitions](definitions.md#accounts-created-by-a-listing).
-3. The definition of each agent is `{name, account, plugin, role, cwd, maker}`: `plugin` is the value of the setting `terminalPlugin`, `role` is the identifier, `cwd` is the project root of the window, and `maker` is the identifier of the group ([definitions](definitions.md#keys)).
-4. The group record is stored under `groups` with its name and its members, which are the identifiers of the agents.
+3. The maker folder is `<folder>/<plugin>`, the installed folder of the item joined with `plugin`. The launch of each agent is `{args, env}`, the arguments and the environment variables that a session of the agent adds to the resolution of its account ([definitions](definitions.md#resolution)). `env` holds each entry of `variables`, with `{home}` replaced by the home folder of the account and `{plugin}` by the maker folder. For an agent of `claude`, `args` is `["--plugin-dir", <maker folder>, "--add-dir", <maker folder>]`. For an agent of `codex`, which reads the skills of `$HOME/.agents/skills/` and has no option that names a skill folder for one run, `env` also holds `HOME` set to the maker folder, and `args` is `["-c", "shell_environment_policy.set={HOME=\"<home of the person>\"}"]`, so the commands that codex runs keep the home of the person; the home of the person is the output of the declared program `person-home`, `printenv HOME`. A value with `{home}` whose account has no home refuses the listing with `group <id> variable <name> needs the home of account <account>`, and a codex group whose `variables` name `HOME` refuses it with `group <id> variable HOME is the maker folder of a codex session`.
+4. The definition of each agent is `{name, account, plugin, role, cwd, maker, launch}`: `plugin` is the value of the setting `terminalPlugin`, `role` is the identifier, `cwd` is the project root of the window, `maker` is the identifier of the group and `launch` the launch of step 3 ([definitions](definitions.md#keys)).
+5. The group record is stored under `groups` with its name and its members, which are the identifiers of the agents.
+6. The role of each agent is defined with `core.role.define {id, text, ko, files}`: `id` is the identifier, `files` holds the absolute path of the agent file, `<maker folder>/<path>`, and `text` and `ko` each name that file in one line.
 
-Each of the keys `accounts`, `definitions` and `groups` is stored only when its value changes. A second listing of an equal group changes nothing, and a definition or a member that the person added stays.
-
-## Writing
-
-The declared command `agents.group.write {group}` writes the files of a connected maker group and defines its roles. It checks every file before it makes the first write, and refuses the whole write with the text of the rule when a check fails:
-
-1. Each `files` entry whose path exists in the project and whose current text differs from the entry text is refused with `maker <group>: <path> holds other content`. A path that does not exist, and a path whose current text equals the entry text, pass the check.
-2. Each `folders` entry is created with `createFolder` of the files sidecar, relative to the project root. Each `files` entry is written with `write` of the files sidecar after its parent folders exist; a `files` path outside `folders` is refused. The request carries `executable` with the value of the entry, `false` when the entry has none. A file whose current text equals the entry text and that has no byte order mark is not written (a byte order mark is removed by a write), except an executable entry: the sidecar reports no mode, so an executable entry is written again with the current version of the file, which sets the mode to 0755 and keeps the text. The plugin declares the files sidecar at `>=0.0.13` in `plugin.json` `dependencies`, the version that reads `executable`; an older sidecar would ignore the member and create the file without the execute bit.
-3. The definition of each agent takes the role file: `files` is the absolute path of the agent `path` entry of `files` in the project root (`core.role.define` takes absolute paths), and `text` and `ko` each name that file in one line. The role identifier is the identifier of the listing. Each role is defined with `core.role.define {id, text, ko, files}`.
-
-The menu of a definition row whose group is a connected maker group has the entry `그룹 파일 쓰기`, which runs `agents.group.write {group}` with the identifier of that group, above the entry `삭제`.
-
-The command returns `{written}`, the project paths of the `files` entries that the write wrote, in the order of `files`. An equal file is neither written nor listed. A refusal of core stops the command with its text; the files written before that refusal stay, and a repeated write writes only the files that differ.
-
-Model and environment variables are not applied. The stored definition has no member for them ([definitions](definitions.md#keys)).
+Each of the keys `accounts`, `definitions` and `groups` is stored only when its value changes, and the roles are defined after the stored values. A second listing of an equal group stores nothing, and a definition or a member that the person added stays. A new installed folder, such as the folder of an updated maker, changes the launch and the role files, which the next listing stores.
 
 ```json group-schema
 {
@@ -76,20 +61,10 @@ Model and environment variables are not applied. The stored definition has no me
         "required": ["name", "path", "cli"]
       }
     },
-    "skills": { "type": "array", "items": { "type": "string" } },
     "variables": { "type": "object" },
-    "path": { "type": "array", "items": { "type": "string" } },
     "folders": { "type": "array", "items": { "type": "string" } },
-    "rules": { "type": "array", "items": { "type": "string" } },
-    "files": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": { "path": { "type": "string" }, "text": { "type": "string" }, "executable": { "type": "boolean" } },
-        "required": ["path", "text"]
-      }
-    }
+    "rules": { "type": "array", "items": { "type": "string" } }
   },
-  "required": ["id", "name", "plugin", "clis", "agents", "skills", "variables", "path", "folders", "rules", "files"]
+  "required": ["id", "name", "plugin", "clis", "agents", "variables", "folders", "rules"]
 }
 ```

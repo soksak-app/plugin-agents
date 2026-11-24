@@ -1,7 +1,7 @@
-// The maker groups of a connected item (A17, docs/spec/makers.md): checks the group object of an item, stores the records of a listing
-// (listRecords: the accounts, the definitions and the group record) and plans the folders, files and roles of a write (writePlan). The
-// writes themselves are made by the definitions section (ui/definitions.js) through ui/makers-import.js; the rules of the stored values
-// are those of groups.js, roles.js, accounts.js and definition-records.js.
+// The maker groups of a connected item (A17, A35, A37, docs/spec/makers.md): checks the group object of an item and plans the records of a
+// listing (listRecords: the accounts, the definitions with the launch of the maker folder, the group record and the roles). No file is
+// written into the project: a session loads the maker folder through the arguments and variables of its launch. The rules of the stored
+// values are those of groups.js, roles.js, accounts.js and definition-records.js.
 import { parseGroups } from "./groups.js";
 import { addMember } from "./roles.js";
 import { defineAccount, parseAccounts } from "./accounts.js";
@@ -13,7 +13,8 @@ export const MAKERS_POINT = "makers";
 
 const CLIS = ["claude", "codex"];
 const DEFINITION_ID_MAX = 64;
-const GROUP_MEMBERS = ["agents", "clis", "folders", "files", "id", "name", "path", "plugin", "rules", "skills", "variables"];
+const GROUP_MEMBERS = ["agents", "clis", "folders", "id", "name", "plugin", "rules", "variables"];
+const VARIABLE = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 
 // The slug of an agent name (docs/spec/makers.md#listing): lower case, each run of characters outside a-z and 0-9 as one dash, the dashes
 // at both ends removed. It may be empty; the caller refuses an empty slug.
@@ -29,7 +30,7 @@ export function definitionIdentifier(groupId, name) {
   return `${groupId}-${slug}`.slice(0, DEFINITION_ID_MAX);
 }
 
-// Throws unless the value is a relative project path: text, no leading slash, no backslash and no .. segment.
+// Throws unless the value is a relative path: text, no leading slash, no backslash and no .. segment.
 function checkRelativePath(path, where) {
   if (typeof path !== "string" || path === "" || path.startsWith("/") || path.includes("\\") || path.split("/").includes("..")) {
     throw new Error(`${where} must be a relative path without .. segments`);
@@ -42,40 +43,57 @@ export function parseMakerGroup(group, itemId) {
   for (const key of GROUP_MEMBERS) {
     if (!Object.hasOwn(group, key)) throw new Error(`group ${group.id ?? itemId} must have the member ${key}`);
   }
+  const unknown = Object.keys(group).find((key) => !GROUP_MEMBERS.includes(key));
+  if (unknown !== undefined) throw new Error(`group ${group.id ?? itemId} has the unknown member ${unknown}`);
   if (group.id !== itemId) throw new Error(`group identifier ${group.id} differs from the item identifier ${itemId}`);
-  if (typeof group.name !== "string" || typeof group.plugin !== "string") throw new Error(`group ${group.id} member name and plugin must be text`);
+  if (typeof group.name !== "string") throw new Error(`group ${group.id} member name must be text`);
+  checkRelativePath(group.plugin, `group ${group.id} member plugin`);
   if (!Array.isArray(group.clis) || group.clis.some((cli) => !CLIS.includes(cli))) throw new Error(`group ${group.id} member clis must be a list of claude or codex`);
-  for (const key of ["folders", "path", "rules", "skills"]) {
+  for (const key of ["folders", "rules"]) {
     if (!Array.isArray(group[key]) || group[key].some((entry) => typeof entry !== "string")) {
       throw new Error(`group ${group.id} member ${key} must be a list of text`);
     }
   }
   if (group.folders.some((folder) => !folder.endsWith("/"))) throw new Error(`group ${group.id} member folders must end with /`);
-  if (group.folders.some((folder) => { try { checkRelativePath(folder, "folder"); return false; } catch { return true; } })) {
-    throw new Error(`group ${group.id} member folders must hold relative paths`);
-  }
+  for (const folder of group.folders) checkRelativePath(folder, `group ${group.id} folder ${folder}`);
   if (group.variables === null || typeof group.variables !== "object" || Array.isArray(group.variables)) {
     throw new Error(`group ${group.id} member variables must be an object`);
   }
-  if (!Array.isArray(group.files)) throw new Error(`group ${group.id} member files must be a list`);
-  const paths = new Set();
-  for (const file of group.files) {
-    if (file === null || typeof file !== "object" || typeof file.text !== "string") throw new Error(`group ${group.id} file entry must have text`);
-    checkRelativePath(file.path, `file ${file.path}`);
-    if (!group.folders.some((folder) => file.path.startsWith(folder))) throw new Error(`file ${file.path} is not inside a folder of folders`);
-    if (file.executable !== undefined && typeof file.executable !== "boolean") throw new Error(`file ${file.path} executable must be a boolean`);
-    if (paths.has(file.path)) throw new Error(`file ${file.path} repeats`);
-    paths.add(file.path);
+  for (const [name, value] of Object.entries(group.variables)) {
+    if (!VARIABLE.test(name) || typeof value !== "string") throw new Error(`group ${group.id} variable ${name} must be a variable name with a text value`);
   }
   if (!Array.isArray(group.agents)) throw new Error(`group ${group.id} member agents must be a list`);
   for (const agent of group.agents) {
-    if (typeof agent?.name !== "string" || typeof agent.path !== "string" || !CLIS.includes(agent.cli)) {
-      throw new Error(`group ${group.id} agent must have name, path and cli claude or codex`);
-    }
-    if (!paths.has(agent.path)) throw new Error(`agent ${agent.name} path ${agent.path} is not a path of files`);
+    if (typeof agent?.name !== "string" || !CLIS.includes(agent.cli)) throw new Error(`group ${group.id} agent must have name, path and cli claude or codex`);
+    checkRelativePath(agent.path, `agent ${agent.name} path`);
     if (agent.port !== undefined && !Number.isInteger(agent.port)) throw new Error(`agent ${agent.name} port must be an integer`);
+    if (agent.model !== undefined && typeof agent.model !== "string") throw new Error(`agent ${agent.name} model must be text`);
   }
   return group;
+}
+
+// The maker folder of a group: the installed folder of the item (core F1154) joined with plugin.
+export function makerFolder(group, folder) {
+  if (typeof folder !== "string" || !folder.startsWith("/") || folder.endsWith("/")) {
+    throw new Error(`group ${group.id}: the installed folder of the item must be an absolute path without a trailing slash`);
+  }
+  return `${folder}/${group.plugin.replace(/\/$/, "")}`;
+}
+
+// The launch {args, env} of an agent of a checked group (docs/spec/makers.md#listing): the arguments and variables that its session adds to
+// the resolution of its account. home is the home folder of the account or null; personHome is the home of the person, which a codex
+// session gives to the commands that it runs.
+export function launchOf(group, agent, { maker, home, account, personHome }) {
+  const env = {};
+  for (const [name, value] of Object.entries(group.variables)) {
+    if (value.includes("{home}") && home === null) throw new Error(`group ${group.id} variable ${name} needs the home of account ${account}`);
+    env[name] = value.replaceAll("{home}", home ?? "").replaceAll("{plugin}", maker);
+  }
+  if (agent.cli === "claude") return { args: ["--plugin-dir", maker, "--add-dir", maker], env };
+  // codex reads the skills of $HOME/.agents/skills and has no option that names a skill folder for one run (agents A37 (9)).
+  if (Object.hasOwn(group.variables, "HOME")) throw new Error(`group ${group.id} variable HOME is the maker folder of a codex session`);
+  if (typeof personHome !== "string" || !personHome.startsWith("/")) throw new Error(`group ${group.id}: the home of the person must be an absolute path`);
+  return { args: ["-c", `shell_environment_policy.set={HOME=${JSON.stringify(personHome)}}`], env: { ...env, HOME: maker } };
 }
 
 // The agents of a checked group with their definition identifiers. Refuses an identifier that repeats within the group, naming the agent.
@@ -89,16 +107,18 @@ function agentIdentifiers(group) {
   return agents;
 }
 
-// Plans the stored records of a listing of a checked group (docs/spec/makers.md#listing). Returns {accounts, definitions, groups}: the
-// accounts after the listing (the accounts of each agent cli, created when none exists), the definitions with the maker member of the
-// group, and the group record with each agent identifier as a member. Throws with the text of the rule before any value is returned
+// Plans the stored records of a listing of a checked group (docs/spec/makers.md#listing). Returns {accounts, definitions, groups, roles}:
+// the accounts after the listing (the accounts of each agent cli, created when none exists), the definitions with the maker member of the
+// group and the launch of the maker folder, the group record with each agent identifier as a member, and the role of each agent with the
+// absolute path of its file. folder is the installed folder of the item. Throws with the text of the rule before any value is returned
 // when a check fails.
-export function listRecords({ group, groups, definitions, accounts, plugin, cwd, dataFolder }) {
+export function listRecords({ group, folder, personHome, groups, definitions, accounts, plugin, cwd, dataFolder }) {
   parseMakerGroup(group, group.id);
   parseGroups(groups);
   parseDefinitions(definitions);
   parseAccounts(accounts);
   const agents = agentIdentifiers(group);
+  const maker = makerFolder(group, folder);
   // The accounts: the first account of each agent cli, or the account created from it (docs/spec/definitions.md#accounts-created-by-a-listing).
   let next = accounts;
   const accountOf = new Map();
@@ -116,7 +136,9 @@ export function listRecords({ group, groups, definitions, accounts, plugin, cwd,
   let nextDefinitions = definitions;
   for (const { agent, id } of agents) {
     try {
-      nextDefinitions = defineDefinition(nextDefinitions, next, { id, name: agent.name, account: accountOf.get(agent.cli), plugin, cwd, maker: group.id });
+      const account = next.find((entry) => entry.id === accountOf.get(agent.cli));
+      const launch = launchOf(group, agent, { maker, home: account.home?.folder ?? null, account: account.id, personHome });
+      nextDefinitions = defineDefinition(nextDefinitions, next, { id, name: agent.name, account: account.id, plugin, cwd, maker: group.id, launch });
     } catch (error) {
       throw new Error(`agent ${agent.name}: ${error.message}`);
     }
@@ -125,22 +147,12 @@ export function listRecords({ group, groups, definitions, accounts, plugin, cwd,
   let nextGroups = Object.hasOwn(groups, group.id) ? groups : { ...groups, [group.id]: { name: group.name, members: [] } };
   nextGroups = { ...nextGroups, [group.id]: { ...nextGroups[group.id], name: group.name } };
   for (const { id } of agents) nextGroups = addMember(nextGroups, group.id, id);
-  return { accounts: next, definitions: nextDefinitions, groups: nextGroups };
-}
-
-// Plans the write of a checked group (docs/spec/makers.md#writing). Returns {folders, files, roles}: the folders and the files to check and
-// write, and the role of each agent for core.role.define. Throws with the text of the rule before any write when a check fails.
-export function writePlan(group) {
-  parseMakerGroup(group, group.id);
-  const roles = agentIdentifiers(group).map(({ agent, id }) => ({
+  // The roles: each agent with the absolute path of its file in the maker folder, which core.role.define takes.
+  const roles = agents.map(({ agent, id }) => ({
     id,
-    text: `Follow the definition in ${agent.path}.`,
-    ko: `${agent.path} 파일의 정의를 따른다.`,
-    files: [agent.path],
+    text: `Follow the definition in ${maker}/${agent.path}.`,
+    ko: `${maker}/${agent.path} 파일의 정의를 따른다.`,
+    files: [`${maker}/${agent.path}`],
   }));
-  return {
-    folders: [...group.folders],
-    files: group.files.map((file) => ({ path: file.path, text: file.text, executable: file.executable === true })),
-    roles,
-  };
+  return { accounts: next, definitions: nextDefinitions, groups: nextGroups, roles };
 }

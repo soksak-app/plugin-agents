@@ -77,22 +77,45 @@ test("definitionsUsingAccount lists the identifiers of the definitions that name
   assert.deepEqual(definitionsUsingAccount(definitions, "unused"), []);
 });
 
-test("parseDefinitions accepts the optional member maker as text, and refuses it when it is not text", () => {
+const LAUNCH = { args: ["--plugin-dir", "/m/plugin", "--add-dir", "/m/plugin"], env: { MOAI_PLUGIN: "/m/plugin", A_FIRST: "1" } };
+
+test("parseDefinitions accepts maker with launch, and refuses maker without launch, launch without maker and a launch of another form", () => {
   const record = { name: "A", account: "claude-main", plugin: "terminal", role: "a", cwd: "/work/project" };
-  assert.deepEqual(parseDefinitions({ a: { ...record, maker: "moai" } }), { a: { ...record, maker: "moai" } });
-  assert.throws(() => parseDefinitions({ a: { ...record, maker: 1 } }), /projects\.json plugins\.agents\.definitions: definition a must have the members account, cwd, name, plugin and role/);
+  assert.deepEqual(parseDefinitions({ a: { ...record, maker: "moai", launch: LAUNCH } }), { a: { ...record, maker: "moai", launch: LAUNCH } });
+  const members = /projects\.json plugins\.agents\.definitions: definition a must have the members account, cwd, name, plugin and role, and maker with launch or neither/;
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: "moai" } }), members);
+  assert.throws(() => parseDefinitions({ a: { ...record, launch: LAUNCH } }), members);
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: 1, launch: LAUNCH } }), members);
+  const form = /definition a launch must be \{args, env\} with args a list of text and env an object of variable name to text/;
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: "moai", launch: { args: [1], env: {} } } }), form);
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: "moai", launch: { args: [], env: { "1X": "a" } } } }), form);
+  assert.throws(() => parseDefinitions({ a: { ...record, maker: "moai", launch: { args: [], env: {}, extra: 1 } } }), form);
 });
 
-test("defineDefinition stores the maker member when the listing gives one, and a record without maker has none", () => {
-  const withMaker = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai" });
-  assert.deepEqual(withMaker.reviewer, { name: "Reviewer", account: "claude-main", plugin: "terminal", role: "reviewer", cwd: "/work/project", maker: "moai" });
+test("defineDefinition stores maker and launch together when the listing gives them, and a record without maker has neither", () => {
+  const withMaker = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai", launch: LAUNCH });
+  assert.deepEqual(withMaker.reviewer, { name: "Reviewer", account: "claude-main", plugin: "terminal", role: "reviewer", cwd: "/work/project", maker: "moai", launch: LAUNCH });
   const plain = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
-  assert.equal(Object.hasOwn(plain.reviewer, "maker"), false);
+  assert.equal(Object.hasOwn(plain.reviewer, "maker") || Object.hasOwn(plain.reviewer, "launch"), false);
+  assert.throws(() => defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai" }), /definition maker and launch are given together/);
 });
 
-test("defineDefinition keeps the maker of a record that the person defines again", () => {
-  const listed = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai" });
+test("defineDefinition keeps the maker and the launch of a record that the person defines again", () => {
+  const listed = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai", launch: LAUNCH });
   const again = defineDefinition(listed, ACCOUNTS, { id: "reviewer", ...FIELDS, name: "Review" });
   assert.equal(again.reviewer.maker, "moai");
+  assert.deepEqual(again.reviewer.launch, LAUNCH);
   assert.equal(again.reviewer.name, "Review");
+});
+
+test("resolveDefinition adds the variables of the launch after the home variable, sorted by name, and its arguments after the account", () => {
+  const definitions = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS, maker: "moai", launch: LAUNCH });
+  assert.deepEqual(resolveDefinition(definitions, ACCOUNTS, "reviewer").args, [
+    `CLAUDE_CONFIG_DIR=${HOME.folder}`, "A_FIRST=1", "MOAI_PLUGIN=/m/plugin", "claude", "--verbose", "--plugin-dir", "/m/plugin", "--add-dir", "/m/plugin",
+  ]);
+  const plain = [{ id: "claude-main", cli: "claude", args: [], env: [], home: null }];
+  assert.deepEqual(resolveDefinition(definitions, plain, "reviewer"), {
+    id: "reviewer", name: "Reviewer", account: "claude-main", plugin: "terminal", program: "env",
+    args: ["A_FIRST=1", "MOAI_PLUGIN=/m/plugin", "claude", "--plugin-dir", "/m/plugin", "--add-dir", "/m/plugin"], role: "reviewer", cwd: "/work/project",
+  });
 });

@@ -45,16 +45,10 @@ test("definitionNodes labels a member by the name of its stored definition, and 
   assert.deepEqual(treePaths(definitionNodes(rows, records)).paths, ["default/", "default/tester", "default/moai-lead"]);
 });
 
-// A34: the files of a maker group reach the project only through agents.group.write, so the menu of a definition of a connected maker
-// group offers that write; a definition of another group offers only its removal.
-test("definitionMenu offers the write of the maker group to a definition of a connected maker group", () => {
-  const member = { id: "moai-builder-harness", defined: false };
-  assert.deepEqual(definitionMenu({ group: "moai", member }, ["moai", "harness"]), [
-    { label: "그룹 파일 쓰기", command: "agents.group.write", params: { group: "moai" } },
+// A37: a maker group writes no file into the project, so the menu of every definition offers only its removal.
+test("definitionMenu offers the removal of the definition, also for a definition of a maker group", () => {
+  assert.deepEqual(definitionMenu({ group: "moai", member: { id: "moai-builder-harness", defined: false } }), [
     { label: "삭제", command: "agents.definition.remove", params: { group: "moai", id: "moai-builder-harness" } },
-  ]);
-  assert.deepEqual(definitionMenu({ group: "g1", member: { id: "mine", defined: true } }, ["moai"]), [
-    { label: "삭제", command: "agents.definition.remove", params: { group: "g1", id: "mine" } },
   ]);
 });
 

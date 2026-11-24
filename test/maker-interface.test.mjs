@@ -45,19 +45,16 @@ const sampleGroup = {
   name: "MoAI",
   plugin: "plugin",
   clis: ["claude"],
-  agents: [{ name: "manager-spec", path: ".moai/agents/manager-spec.md", cli: "claude", port: 7801, model: "opus" }],
-  skills: [".moai/skills/moai/"],
+  agents: [{ name: "manager-spec", path: ".claude/agents/manager-spec.md", cli: "claude", port: 7801, model: "opus" }],
   variables: { MOAI_HOME: "{home}/.moai" },
-  path: ["bin"],
   folders: [".moai/"],
-  rules: [".moai/ holds the output of moai; hook settings are not written to the project"],
-  files: [{ path: ".moai/agents/manager-spec.md", text: "# manager-spec\n" }],
+  rules: [".moai/ holds the output of moai"],
 };
 
 test("the spec defines the group schema in a json group-schema block", () => {
   assert.ok(groupSchema, "docs/spec/makers.md has no json group-schema block");
   assert.equal(groupSchema.type, "object");
-  assert.deepEqual(groupSchema.required, ["id", "name", "plugin", "clis", "agents", "skills", "variables", "path", "folders", "rules", "files"]);
+  assert.deepEqual(groupSchema.required, ["id", "name", "plugin", "clis", "agents", "variables", "folders", "rules"]);
 });
 
 test("a sample group matches the group schema and a group without a required member does not", () => {

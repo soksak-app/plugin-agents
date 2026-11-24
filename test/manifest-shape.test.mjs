@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "dependencies", "settings", "extends", "data", "programs", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "settings", "extends", "data", "programs", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -134,8 +134,8 @@ test("plugin.json declares the commands agents.account.define, agents.account.re
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
 // identifier is made by the page and returned in the result.
-test("plugin.json declares the sidecar of the files that the write writes, at the version that reads the executable member of write", () => {
-  assert.deepEqual(manifest.dependencies, { "@soksak/sidecar-files": ">=0.0.13" });
+test("plugin.json declares no sidecar, because a maker group writes no file into the project (A37)", () => {
+  assert.equal(Object.hasOwn(manifest, "dependencies"), false);
 });
 
 test("plugin.json declares the commands agents.group.create, agents.definition.define, agents.definition.remove, agents.running.select and agents.session.show with their parameters and results", () => {
@@ -183,12 +183,6 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       result: { type: "null" },
     },
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
-    {
-      name: "agents.group.write",
-      description: "Writes the files of a connected maker group of agents.makers into the project and defines its roles with core.role.define. Refuses the write with the text of the rule before any write when a file holds other content. Returns the project paths that the write wrote.",
-      params: { type: "object", properties: { group: { type: "string" } }, required: ["group"] },
-      result: { type: "object", properties: { written: { type: "array", items: { type: "string" } } }, required: ["written"] },
-    },
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
     {"name": "agents.account.login", "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {
@@ -247,11 +241,12 @@ test("plugin.json declares the status agents.definition-dialog.accounts with the
 
 // The programs of the account homes (docs/spec/definitions.md#account-homes): each argument is literal or matches a pattern that keeps it
 // in the folder accounts of the data folder of the plugin, or names the keychain item of a claude login.
-test("plugin.json declares the programs account-home, claude-login and codex-login whose arguments stay in the account homes", () => {
+test("plugin.json declares the programs account-home, claude-login, codex-login and person-home whose arguments stay in the account homes", () => {
   assert.deepEqual(manifest.programs, {
     "account-home": { program: "/bin/mkdir", args: ["-p", "-m", "700", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
     "claude-login": { program: "/usr/bin/security", args: ["find-generic-password", "-s", { pattern: "Claude Code-credentials-[0-9a-f]{8}" }] },
     "codex-login": { program: "/bin/test", args: ["-f", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}/auth\\.json" }] },
+    "person-home": { program: "/usr/bin/printenv", args: ["HOME"] },
   });
   const full = (slot, text) => new RegExp(`^(?:${slot.pattern})$`).test(text);
   assert.ok(full(manifest.programs["account-home"].args[3], "/Users/me/Library/Application Support/app/plugin-data/agents/accounts/work"));
