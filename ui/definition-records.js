@@ -62,7 +62,7 @@ export function definitionsUsingAccount(definitions, accountId) {
   return Object.keys(definitions).filter((id) => definitions[id].account === accountId);
 }
 
-// The definition with program and args of its account: the start values of an agent session. Refuses a missing definition, and a
+// The definition with program and args of its account (docs/spec/definitions.md#resolution): the start values of an agent session. Refuses a missing definition, and a
 // definition whose account the accounts do not define.
 export function resolveDefinition(definitions, accounts, id) {
   parseDefinitions(definitions);
@@ -70,6 +70,10 @@ export function resolveDefinition(definitions, accounts, id) {
   const record = definitions[id];
   const account = accounts.find((entry) => entry.id === record.account);
   if (account === undefined) throw new Error(`definition ${id} uses account ${record.account} that is not defined`);
-  return { id, name: record.name, account: record.account, plugin: record.plugin, program: account.cli, args: [...account.args], role: record.role, cwd: record.cwd };
+  // An account with a home starts its cli through env in that home, so the CLI uses the login of the account.
+  const launch = account.home === null
+    ? { program: account.cli, args: [...account.args] }
+    : { program: "env", args: [`${account.home.variable}=${account.home.folder}`, account.cli, ...account.args] };
+  return { id, name: record.name, account: record.account, plugin: record.plugin, ...launch, role: record.role, cwd: record.cwd };
 }
 

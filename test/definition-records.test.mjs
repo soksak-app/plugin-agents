@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { defineDefinition, definitionsUsingAccount, parseDefinitions, removeDefinition, resolveDefinition } from "../ui/definition-records.js";
 
-const ACCOUNTS = [{ id: "claude-main", cli: "claude", args: ["--verbose"], env: [] }];
+const HOME = { variable: "CLAUDE_CONFIG_DIR", folder: "/config/plugin-data/agents/accounts/claude-main" };
+const ACCOUNTS = [{ id: "claude-main", cli: "claude", args: ["--verbose"], env: [], home: HOME }];
 const FIELDS = { name: "Reviewer", account: "claude-main", plugin: "terminal", cwd: "/work/project" };
 
 test("defineDefinition adds the record with role equal to the identifier and keeps the input unchanged", () => {
@@ -53,11 +54,15 @@ test("parseDefinitions accepts an empty object and refuses another form, naming 
   assert.throws(() => parseDefinitions({ a: { ...FIELDS, role: "a", program: "claude" } }), /projects\.json plugins\.agents\.definitions: definition a must have the members account, cwd, name, plugin and role/);
 });
 
-test("resolveDefinition gives the program and the arguments of the account, and refuses a missing definition or account", () => {
+test("resolveDefinition starts the cli of an account with a home through env in that home, and refuses a missing definition or account", () => {
   const definitions = defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS });
   assert.deepEqual(resolveDefinition(definitions, ACCOUNTS, "reviewer"), {
-    id: "reviewer", name: "Reviewer", account: "claude-main", plugin: "terminal", program: "claude", args: ["--verbose"], role: "reviewer", cwd: "/work/project",
+    id: "reviewer", name: "Reviewer", account: "claude-main", plugin: "terminal", program: "env",
+    args: [`CLAUDE_CONFIG_DIR=${HOME.folder}`, "claude", "--verbose"], role: "reviewer", cwd: "/work/project",
   });
+  const plain = [{ id: "claude-main", cli: "gemini", args: ["-y"], env: [], home: null }];
+  assert.deepEqual(resolveDefinition(definitions, plain, "reviewer").program, "gemini");
+  assert.deepEqual(resolveDefinition(definitions, plain, "reviewer").args, ["-y"]);
   assert.throws(() => resolveDefinition(definitions, ACCOUNTS, "other"), /definition other is not defined/);
   assert.throws(() => resolveDefinition(definitions, [], "reviewer"), /definition reviewer uses account claude-main that is not defined/);
 });
@@ -65,7 +70,7 @@ test("resolveDefinition gives the program and the arguments of the account, and 
 test("definitionsUsingAccount lists the identifiers of the definitions that name the account", () => {
   const definitions = defineDefinition(
     defineDefinition({}, ACCOUNTS, { id: "reviewer", ...FIELDS }),
-    [...ACCOUNTS, { id: "codex-main", cli: "codex", args: [], env: [] }],
+    [...ACCOUNTS, { id: "codex-main", cli: "codex", args: [], env: [], home: null }],
     { id: "writer", ...FIELDS, account: "codex-main" },
   );
   assert.deepEqual(definitionsUsingAccount(definitions, "claude-main"), ["reviewer"]);

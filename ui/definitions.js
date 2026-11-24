@@ -9,7 +9,7 @@ import { parseGroups } from "./groups.js";
 import { parseAccounts } from "./accounts.js";
 import { parseDefinitions, removeDefinition } from "./definition-records.js";
 import { removeMember, roleRows } from "./roles.js";
-import { changeDefinitionRecord, createGroupRecord, defineDefinitionRecord, terminalPlugin } from "./definition-commands.js";
+import { changeDefinitionRecord, createGroupRecord, defineDefinitionRecord, terminalPlugin, createHome } from "./definition-commands.js";
 import { createRequests } from "./makers-files.js";
 import { listGroup, storedChanges, writeGroup } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
@@ -44,7 +44,7 @@ if (start === null || typeof start !== "object") throw new Error("the definition
 const list = document.getElementById("groups");
 const empty = document.getElementById("empty");
 // The rules of the commands that the dialogs of this section serve too: each runs in its own document with the same bridge.
-const api = { data: bridge.runtime.data, calls: bridge.calls, settings: bridge.runtime.settings };
+const api = { data: bridge.runtime.data, calls: bridge.calls, settings: bridge.runtime.settings, program: bridge.runtime.program, dataFolder: start.dataFolder };
 
 // The values of the reads, each replaced when its watch delivers a new one: the groups of the project and core.roles.
 let groups = {};
@@ -166,7 +166,9 @@ async function listMakers() {
     }
     try {
       const stored = await readStored();
-      const next = listGroup({ group: contributed, stored, plugin: await terminalPlugin(api), root: start.project.root });
+      const next = listGroup({ group: contributed, stored, plugin: await terminalPlugin(api), root: start.project.root, dataFolder: start.dataFolder });
+      // An account that the listing creates has its home folder before it is stored (docs/spec/definitions.md#account-homes).
+      for (const account of next.accounts) if (!stored.accounts.some((entry) => entry.id === account.id)) await createHome(api, account);
       for (const key of storedChanges(stored, next)) await bridge.runtime.data.change(key, () => next[key]);
     } catch (error) {
       reportError("agents.definitions", `maker group ${entry.item.id} could not be listed: ${error?.message ?? error}`);

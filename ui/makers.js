@@ -93,7 +93,7 @@ function agentIdentifiers(group) {
 // accounts after the listing (the accounts of each agent cli, created when none exists), the definitions with the maker member of the
 // group, and the group record with each agent identifier as a member. Throws with the text of the rule before any value is returned
 // when a check fails.
-export function listRecords({ group, groups, definitions, accounts, plugin, cwd }) {
+export function listRecords({ group, groups, definitions, accounts, plugin, cwd, dataFolder }) {
   parseMakerGroup(group, group.id);
   parseGroups(groups);
   parseDefinitions(definitions);
@@ -109,7 +109,7 @@ export function listRecords({ group, groups, definitions, accounts, plugin, cwd 
       continue;
     }
     if (next.some((entry) => entry.id === agent.cli)) throw new Error(`account ${agent.cli} is defined with cli ${next.find((entry) => entry.id === agent.cli).cli}`);
-    next = defineAccount(next, { id: agent.cli, cli: agent.cli, args: [], env: [] });
+    next = defineAccount(next, { id: agent.cli, cli: agent.cli, args: [], env: [] }, dataFolder);
     accountOf.set(agent.cli, agent.cli);
   }
   // The definitions: each agent with its account, the plugin of the terminal setting, the project root, its identifier as role and the group as maker.

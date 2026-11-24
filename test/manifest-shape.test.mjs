@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "dependencies", "settings", "extends", "data", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "dependencies", "settings", "extends", "data", "programs", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -108,6 +108,11 @@ test("plugin.json declares the project data keys groups, definitions and account
             cli: { type: "string" },
             args: { type: "array", items: { type: "string" } },
             env: { type: "array", items: { type: "string" } },
+            home: {
+              type: ["object", "null"],
+              properties: { variable: { enum: ["CLAUDE_CONFIG_DIR", "CODEX_HOME"] }, folder: { type: "string" } },
+              required: ["variable", "folder"],
+            },
           },
         },
       },
@@ -116,23 +121,14 @@ test("plugin.json declares the project data keys groups, definitions and account
   });
 });
 
-// The commands of the accounts section (A2): the define command adds an account or replaces the one with the same identifier,
-// and its args and env are text with one entry per line, as the form enters them.
-test("plugin.json declares the commands agents.account.define and agents.account.remove with their parameters and results", () => {
+// The account commands of the definition dialog (A2, A36): define adds an account with its home, remove keeps the home, and login opens
+// the login of the cli in the home (docs/spec/definitions.md#account-homes).
+test("plugin.json declares the commands agents.account.define, agents.account.remove and agents.account.login with their parameters and results", () => {
   const commands = manifest.exposes.commands.filter((command) => command.name.startsWith("agents.account."));
   assert.deepEqual(commands, [
-    {
-      name: "agents.account.define",
-      description: "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
-      params: { type: "object", properties: { id: { type: "string" }, cli: { type: "string" }, args: { type: "string" }, env: { type: "string" } }, required: ["id", "cli", "args", "env"] },
-      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-    },
-    {
-      name: "agents.account.remove",
-      description: "Removes the agent account with the identifier from the project.",
-      params: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-      result: { type: "null" },
-    },
+    {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
+    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
   ]);
 });
 
@@ -186,24 +182,15 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       params: { type: "object", properties: { session: { type: "string" } }, required: ["session"] },
       result: { type: "null" },
     },
-    {
-      name: "agents.account.define",
-      description: "Adds the agent account with the identifier, or replaces the account with the same identifier. The args and the env are text with one entry per line: each line of args is one argument, and each line of env is the name of an environment variable.",
-      params: { type: "object", properties: { id: { type: "string" }, cli: { type: "string" }, args: { type: "string" }, env: { type: "string" } }, required: ["id", "cli", "args", "env"] },
-      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-    },
+    {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {
       name: "agents.group.write",
       description: "Writes the files of a connected maker group of agents.makers into the project and defines its roles with core.role.define. Refuses the write with the text of the rule before any write when a file holds other content. Returns the project paths that the write wrote.",
       params: { type: "object", properties: { group: { type: "string" } }, required: ["group"] },
       result: { type: "object", properties: { written: { type: "array", items: { type: "string" } } }, required: ["written"] },
     },
-    {
-      name: "agents.account.remove",
-      description: "Removes the agent account with the identifier from the project.",
-      params: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
-      result: { type: "null" },
-    },
+    {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
+    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {
       name: "agents.group.open",
       description: "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
@@ -245,13 +232,29 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  // Core 0.0.51 reports the app of the program state of each tab in core.grid (core F1133), which names a CLI started in a shell (A29-3).
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.51" });
+  // Core 0.0.53 gives every view the data folder of its plugin (core F1153), in which the account homes live, and runs the programs of a
+  // plugin with sections only (core F1152), which the account homes run.
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.53" });
   assert.deepEqual(pkg.files, ["plugin.json", "ui"]);
   assert.equal(pkg.private, true);
 });
 
 // The status agents.definitions (A13) is removed: the room reads the stored definitions and accounts (F1075), so no status is declared.
-test("plugin.json declares no status", () => {
-  assert.equal(manifest.exposes.status, undefined);
+test("plugin.json declares the status agents.definition-dialog.accounts with the login of each account", () => {
+  assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts"]);
+  assert.deepEqual(manifest.exposes.status[0].schema.properties.accounts.items.required, ["id", "cli", "login"]);
+});
+
+// The programs of the account homes (docs/spec/definitions.md#account-homes): each argument is literal or matches a pattern that keeps it
+// in the folder accounts of the data folder of the plugin, or names the keychain item of a claude login.
+test("plugin.json declares the programs account-home, claude-login and codex-login whose arguments stay in the account homes", () => {
+  assert.deepEqual(manifest.programs, {
+    "account-home": { program: "/bin/mkdir", args: ["-p", "-m", "700", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
+    "claude-login": { program: "/usr/bin/security", args: ["find-generic-password", "-s", { pattern: "Claude Code-credentials-[0-9a-f]{8}" }] },
+    "codex-login": { program: "/bin/test", args: ["-f", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}/auth\\.json" }] },
+  });
+  const full = (slot, text) => new RegExp(`^(?:${slot.pattern})$`).test(text);
+  assert.ok(full(manifest.programs["account-home"].args[3], "/Users/me/Library/Application Support/app/plugin-data/agents/accounts/work"));
+  assert.ok(!full(manifest.programs["account-home"].args[3], "/Users/me/plugin-data/agents/accounts/../x"));
+  assert.ok(full(manifest.programs["codex-login"].args[1], "/c/plugin-data/agents/accounts/work/auth.json"));
 });

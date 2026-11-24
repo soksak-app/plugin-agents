@@ -1,12 +1,16 @@
-// The agent accounts of the project (A2 in docs/features.md): one value per project under the key accounts (plugin.json data), a
-// list of {id, cli, args, env}. cli is the program name of the agent CLI, args its arguments as given, and env the names of the
-// environment variables that the program receives; no variable value is stored. The form enters args and env as text with one
-// entry per line.
+// The agent accounts of the project (A2, A36 in docs/features.md): one value per project under the key accounts (plugin.json data), a
+// list of {id, cli, args, env, home}. cli is the program name of the agent CLI, args its arguments as given, and env the names of the
+// environment variables that the program receives; no variable value is stored. home is null or {variable, folder}, the configuration
+// home in which the CLI keeps the login of the account (docs/spec/definitions.md#account-homes).
 
 const ACCOUNT_ID = /^[a-z][a-z0-9-]{0,39}$/;
 const CLI = /^[^\s\u0000-\u001f\u007f]{1,255}$/;
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
-const MEMBERS = ["args", "cli", "env", "id"];
+const MEMBERS = ["args", "cli", "env", "home", "id"];
+// The variable through which each agent CLI reads its configuration home, by the last path segment of cli.
+const HOME_VARIABLES = { claude: "CLAUDE_CONFIG_DIR", codex: "CODEX_HOME" };
+// The arguments after the cli that start its login in an empty home: claude asks for the login at its first start.
+const LOGIN_ARGS = { claude: [], codex: ["login"] };
 const WHERE = "projects.json plugins.agents.accounts";
 
 // Throws with the text of the rule when the value is not a list of accounts with the members id, cli, args and env, and no repeated
@@ -17,7 +21,7 @@ export function parseAccounts(value) {
   value.forEach((account, index) => {
     const keys = account !== null && typeof account === "object" && !Array.isArray(account) ? Object.keys(account).sort() : null;
     if (keys === null || keys.length !== MEMBERS.length || keys.some((key, i) => key !== MEMBERS[i])) {
-      throw new Error(`${WHERE}: account ${index} must have the members id, cli, args and env only`);
+      throw new Error(`${WHERE}: account ${index} must have the members id, cli, args, env and home only`);
     }
     try {
       checkAccount(account);
@@ -50,14 +54,31 @@ function checkAccount(account) {
     if (names.has(name)) throw new Error(`account env name ${name} repeats`);
     names.add(name);
   }
+  const home = account.home;
+  const valid = home === null || (home !== null && typeof home === "object" && !Array.isArray(home)
+    && Object.keys(home).sort().join() === "folder,variable" && Object.values(HOME_VARIABLES).includes(home.variable)
+    && typeof home.folder === "string" && home.folder.startsWith("/"));
+  if (!valid) throw new Error("account home must be null or {variable, folder} with the variable CLAUDE_CONFIG_DIR or CODEX_HOME and an absolute folder");
+}
+
+// The last path segment of the cli, which names the agent CLI.
+const cliName = (cli) => cli.split("/").pop();
+
+// The home of an account of cli with the identifier: the folder accounts/<id> of the data folder of the plugin for claude and codex, and
+// null for another cli.
+export function homeOf(cli, dataFolder, id) {
+  if (typeof dataFolder !== "string" || !dataFolder.startsWith("/")) throw new Error("the data folder of the plugin must be an absolute path");
+  const variable = HOME_VARIABLES[cliName(cli)];
+  return variable === undefined ? null : { variable, folder: `${dataFolder}/accounts/${id}` };
 }
 
 // Returns a new list with the account added, or replacing the account with the same identifier in its place. The input is unchanged.
-export function defineAccount(accounts, account) {
+// The home is that of homeOf with dataFolder, the data folder of the plugin.
+export function defineAccount(accounts, account, dataFolder) {
   parseAccounts(accounts);
-  checkAccount(account);
+  checkAccount({ ...account, home: null });
+  const next = { id: account.id, cli: account.cli, args: [...account.args], env: [...account.env], home: homeOf(account.cli, dataFolder, account.id) };
   const index = accounts.findIndex((entry) => entry.id === account.id);
-  const next = { id: account.id, cli: account.cli, args: [...account.args], env: [...account.env] };
   if (index === -1) return [...accounts, next];
   return accounts.map((entry, i) => (i === index ? next : entry));
 }
@@ -69,19 +90,40 @@ export function removeAccount(accounts, id) {
   return accounts.filter((entry) => entry.id !== id);
 }
 
-// Turns the text of the form into an account and defines it. The args and env texts have one entry per line; blank lines are skipped
-// and each entry is trimmed. The identifier and the cli are checked by defineAccount.
-export function accountFromText(accounts, { id, cli, args, env }) {
-  if (typeof args !== "string") throw new Error("account args must be text");
-  if (typeof env !== "string") throw new Error("account env must be text");
-  const lines = (text) => text.split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
-  return defineAccount(accounts, { id, cli: typeof cli === "string" ? cli.trim() : cli, args: lines(args), env: lines(env) });
+// The keychain item in which claude keeps the login of the home folder: the first 8 hexadecimal digits of the SHA-256 of the folder.
+export async function keychainService(folder) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(folder));
+  const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `Claude Code-credentials-${hex.slice(0, 8)}`;
 }
 
-// The rows of the section: each account in the code point order of its identifier.
-export function accountRows(accounts) {
-  parseAccounts(accounts);
-  return accounts
-    .map((account) => ({ id: account.id, cli: account.cli, args: [...account.args], env: [...account.env] }))
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+// The declared program and its arguments that read the login of the home of the account without its secret, or null for an account
+// without a home.
+export async function loginProgram(account) {
+  if (account.home === null) return null;
+  if (account.home.variable === HOME_VARIABLES.claude) {
+    return { name: "claude-login", args: ["find-generic-password", "-s", await keychainService(account.home.folder)] };
+  }
+  return { name: "codex-login", args: ["-f", `${account.home.folder}/auth.json`] };
 }
+
+// The login of the account from the exit status of its login program: security answers 44 and test answers 1 for no login.
+export function loginOf(account, code) {
+  const claude = account.home.variable === HOME_VARIABLES.claude;
+  if (code === 0) return true;
+  if (code === (claude ? 44 : 1)) return false;
+  throw new Error(`login of account ${account.id}: the program ${claude ? "claude-login" : "codex-login"} ended with status ${code}`);
+}
+
+// The parameters of core.layout.open for the terminal tab that runs the login of the cli in the home of the account.
+export function loginTab(account, terminalPlugin) {
+  if (account.home === null) throw new Error(`account ${account.id} has no home`);
+  const name = account.home.variable === HOME_VARIABLES.claude ? "claude" : "codex";
+  return {
+    card: "current", plugin: terminalPlugin,
+    params: { program: "env", args: [`${account.home.variable}=${account.home.folder}`, account.cli, ...LOGIN_ARGS[name]], title: `${account.id} 로그인` },
+  };
+}
+
+// The arguments of the declared program account-home, which creates the home folder with mode 0700.
+export const homeFolderArgs = (account) => ["-p", "-m", "700", account.home.folder];

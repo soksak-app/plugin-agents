@@ -6,6 +6,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { MAKERS_POINT, agentSlug, definitionIdentifier, listRecords, parseMakerGroup, writePlan } from "../ui/makers.js";
 
+const DATA = "/config/plugin-data/agents";
 const group = (overrides = {}) => ({
   id: "moai",
   name: "MoAI",
@@ -83,8 +84,8 @@ test("writePlan refuses an agent identifier that repeats within the group, namin
 });
 
 test("listRecords stores the account of the agent cli, creates it, and stores each definition with its maker and the group record", () => {
-  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
-  assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [] }]);
+  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project", dataFolder: DATA });
+  assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude` } }]);
   assert.deepEqual(stored.definitions, {
     "moai-backend-expert": { name: "Backend Expert", account: "claude", plugin: "terminal", role: "moai-backend-expert", cwd: "/work/project", maker: "moai" },
   });
@@ -92,31 +93,31 @@ test("listRecords stores the account of the agent cli, creates it, and stores ea
 });
 
 test("listRecords uses the first account whose cli equals the agent cli and creates none", () => {
-  const accounts = [{ id: "work", cli: "claude", args: ["--x"], env: [] }];
-  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" });
+  const accounts = [{ id: "work", cli: "claude", args: ["--x"], env: [], home: null }];
+  const stored = listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project", dataFolder: DATA });
   assert.deepEqual(stored.accounts, accounts);
   assert.equal(stored.definitions["moai-backend-expert"].account, "work");
 });
 
 test("listRecords refuses an account identifier that another cli holds, naming the account", () => {
-  const accounts = [{ id: "claude", cli: "codex", args: [], env: [] }];
-  assert.throws(() => listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project" }), /account claude is defined with cli codex/);
+  const accounts = [{ id: "claude", cli: "codex", args: [], env: [], home: null }];
+  assert.throws(() => listRecords({ group: group(), groups: {}, definitions: {}, accounts, plugin: "terminal", cwd: "/work/project", dataFolder: DATA }), /account claude is defined with cli codex/);
 });
 
 test("listRecords keeps the members the person added, and a listing of an equal group changes nothing", () => {
-  const first = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" });
+  const first = listRecords({ group: group(), groups: {}, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project", dataFolder: DATA });
   const groups = { moai: { name: "MoAI", members: ["mine"] } };
   const definitions = { mine: { name: "Mine", account: "claude", plugin: "terminal", role: "mine", cwd: "/work/project" } };
-  const second = listRecords({ group: group(), groups, definitions, accounts: [{ id: "claude", cli: "claude", args: [], env: [] }], plugin: "terminal", cwd: "/work/project" });
+  const second = listRecords({ group: group(), groups, definitions, accounts: [{ id: "claude", cli: "claude", args: [], env: [], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude` } }], plugin: "terminal", cwd: "/work/project", dataFolder: DATA });
   assert.deepEqual(second.groups.moai.members, ["mine", "moai-backend-expert"]);
   assert.deepEqual(second.definitions.mine, definitions.mine);
-  const again = listRecords({ group: group(), groups: first.groups, definitions: first.definitions, accounts: first.accounts, plugin: "terminal", cwd: "/work/project" });
+  const again = listRecords({ group: group(), groups: first.groups, definitions: first.definitions, accounts: first.accounts, plugin: "terminal", cwd: "/work/project", dataFolder: DATA });
   assert.deepEqual(again, first);
 });
 
 test("listRecords refuses an agent whose identifier is a member of another group, naming the group", () => {
   const groups = { other: { name: "Other", members: ["moai-backend-expert"] } };
-  assert.throws(() => listRecords({ group: group(), groups, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project" }), /role moai-backend-expert is already in group other/);
+  assert.throws(() => listRecords({ group: group(), groups, definitions: {}, accounts: [], plugin: "terminal", cwd: "/work/project", dataFolder: DATA }), /role moai-backend-expert is already in group other/);
 });
 
 test("writePlan takes a folder under .claude/ with its files, and lists only those files", () => {

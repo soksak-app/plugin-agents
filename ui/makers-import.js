@@ -11,9 +11,9 @@ function checkRoot(root) {
 }
 
 // Lists the group and returns the stored values {groups, definitions, accounts} after it. stored holds the current values of the project.
-export function listGroup({ group, stored, plugin, root }) {
+export function listGroup({ group, stored, plugin, root, dataFolder }) {
   checkRoot(root);
-  return listRecords({ group, groups: stored.groups, definitions: stored.definitions, accounts: stored.accounts, plugin, cwd: root });
+  return listRecords({ group, groups: stored.groups, definitions: stored.definitions, accounts: stored.accounts, plugin, cwd: root, dataFolder });
 }
 
 // Writes the group and returns {written}, the project paths of the files that were written. requests is the sidecar request function of

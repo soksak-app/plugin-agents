@@ -35,33 +35,34 @@ function roleRecorder(refuse = new Set()) {
   return { calls, define };
 }
 
+const DATA = "/config/plugin-data/agents";
 const WRITES = ["createFolder", "write"];
 
 test("listGroup stores the account, the definitions with their maker and the group record, and takes no sidecar", () => {
-  const stored = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project" });
+  const stored = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"] } });
   assert.deepEqual(stored.definitions, { "moai-backend-expert": { name: "Backend Expert", account: "claude", plugin: "terminal", role: "moai-backend-expert", cwd: "/work/project", maker: "moai" } });
-  assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [] }]);
+  assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude` } }]);
 });
 
 test("a listing of a group refuses before it stores any value when the group or the project root is refused", () => {
   const empty = group({ agents: [{ name: "!!!", path: ".moai/agents/backend.md", cli: "claude" }] });
-  assert.throws(() => listGroup({ group: empty, stored: EMPTY, plugin: "terminal", root: "/work/project" }), /agent !!! has an empty identifier slug/);
-  assert.throws(() => listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "work/project" }), /project root must be an absolute path/);
+  assert.throws(() => listGroup({ group: empty, stored: EMPTY, plugin: "terminal", root: "/work/project", dataFolder: DATA }), /agent !!! has an empty identifier slug/);
+  assert.throws(() => listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "work/project", dataFolder: DATA }), /project root must be an absolute path/);
 });
 
 test("a second listing of an equal group stores equal values, and keeps a definition that the person added to the group", () => {
-  const first = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project" });
-  assert.deepEqual(storedChanges(first, listGroup({ group: group(), stored: first, plugin: "terminal", root: "/work/project" })), []);
+  const first = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project", dataFolder: DATA });
+  assert.deepEqual(storedChanges(first, listGroup({ group: group(), stored: first, plugin: "terminal", root: "/work/project", dataFolder: DATA })), []);
   const mine = { name: "Mine", account: "claude", plugin: "terminal", role: "mine", cwd: "/work/project" };
   const stored = { groups: { moai: { name: "MoAI", members: ["mine"] } }, definitions: { mine }, accounts: [] };
-  const again = listGroup({ group: group(), stored, plugin: "terminal", root: "/work/project" });
+  const again = listGroup({ group: group(), stored, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(again.groups.moai.members, ["mine", "moai-backend-expert"]);
   assert.deepEqual(again.definitions.mine, mine);
 });
 
 test("storedChanges names only the project keys whose stored value a listing changes, and an equal listing names none", () => {
-  const first = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project" });
+  const first = listGroup({ group: group(), stored: EMPTY, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(storedChanges(EMPTY, first), ["groups", "definitions", "accounts"]);
   assert.deepEqual(storedChanges(first, { ...first, groups: { moai: { name: "Renamed", members: ["moai-backend-expert"] } } }), ["groups"]);
 });

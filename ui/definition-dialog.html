@@ -16,6 +16,11 @@
     textarea { resize: vertical; min-height: 44px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
     p { margin: 0 0 12px; min-height: 1.4em; color: var(--error); }
     .actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .row { display: flex; gap: 6px; align-items: flex-end; margin: 0 0 10px; }
+    .row input, .row select { margin-top: 0; }
+    .row button { flex: none; }
+    .new { color: var(--muted); }
+    button:disabled { opacity: 0.5; cursor: default; }
     button { padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
   </style>
 </head>
@@ -23,7 +28,10 @@
   <main class="card">
     <h1>에이전트 정의</h1>
     <label>이름 <input id="name" type="text" maxlength="40" autocomplete="off"></label>
-    <label>계정 <select id="account"></select></label>
+    <label for="account">계정</label>
+    <div class="row"><select id="account"></select><button id="login" type="button" disabled>로그인</button></div>
+    <div class="new">새 계정</div>
+    <div class="row"><input id="account-id" type="text" placeholder="식별자" autocomplete="off"><input id="account-cli" type="text" placeholder="cli (claude, codex)" autocomplete="off"><button id="account-add" type="button">추가</button></div>
     <label>작업 폴더 (절대 경로) <input id="cwd" type="text" autocomplete="off"></label>
     <label>역할 텍스트 <textarea id="text" rows="4"></textarea></label>
     <label>역할 텍스트 (한국어) <textarea id="ko" rows="4"></textarea></label>
