@@ -90,38 +90,55 @@ export function removeAccount(accounts, id) {
   return accounts.filter((entry) => entry.id !== id);
 }
 
-// The keychain item in which claude keeps the login of the home folder: the first 8 hexadecimal digits of the SHA-256 of the folder.
-export async function keychainService(folder) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(folder));
-  const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  return `Claude Code-credentials-${hex.slice(0, 8)}`;
-}
-
-// The declared program and its arguments that read the login of the home of the account without its secret, or null for an account
-// without a home.
-export async function loginProgram(account) {
+// The declared program and its arguments that read the login of the home of the account with the documented status command of its cli:
+// claude auth status --json prints {loggedIn, configDirectory, loginExpiresAt}, and codex login status exits 0 or 1. An account without a
+// home has no status program.
+export function statusProgram(account) {
   if (account.home === null) return null;
-  if (account.home.variable === HOME_VARIABLES.claude) {
-    return { name: "claude-login", args: ["find-generic-password", "-s", await keychainService(account.home.folder)] };
-  }
-  return { name: "codex-login", args: ["-f", `${account.home.folder}/auth.json`] };
+  const home = `${account.home.variable}=${account.home.folder}`;
+  if (account.home.variable === HOME_VARIABLES.claude) return { name: "claude-status", args: [home, account.cli, "auth", "status", "--json"] };
+  return { name: "codex-status", args: [home, account.cli, "login", "status"] };
 }
 
-// The login of the account from the exit status of its login program: security answers 44 and test answers 1 for no login.
-export function loginOf(account, code) {
+// The login of the account, {login, expires}, from the reply of its status program. claude exits 0 with loggedIn true and 1 with loggedIn
+// false, and names its configuration folder, which must be the home; expires is its loginExpiresAt, the end of the login, or null. codex
+// exits 0 or 1 and states no end.
+export function loginOf(account, reply) {
   const claude = account.home.variable === HOME_VARIABLES.claude;
-  if (code === 0) return true;
-  if (code === (claude ? 44 : 1)) return false;
-  throw new Error(`login of account ${account.id}: the program ${claude ? "claude-login" : "codex-login"} ended with status ${code}`);
+  const name = claude ? "claude-status" : "codex-status";
+  const where = `login of account ${account.id}: ${name}`;
+  if (reply.truncated.stdout || reply.truncated.stderr) throw new Error(`${where} output was truncated`);
+  if (reply.code !== 0 && reply.code !== 1) throw new Error(`${where} ended with status ${reply.code}: ${reply.stderr.trim()}`);
+  if (!claude) return { login: reply.code === 0, expires: null };
+  let status;
+  try {
+    status = JSON.parse(reply.stdout);
+  } catch {
+    throw new Error(`${where} printed no status JSON: ${JSON.stringify(reply.stdout.slice(0, 200))}`);
+  }
+  if (status === null || typeof status !== "object" || typeof status.loggedIn !== "boolean" || typeof status.configDirectory !== "string" ||
+      !(status.loginExpiresAt === null || typeof status.loginExpiresAt === "string")) {
+    throw new Error(`${where} printed no status JSON: ${JSON.stringify(reply.stdout.slice(0, 200))}`);
+  }
+  if (status.loggedIn !== (reply.code === 0)) throw new Error(`${where} ended with status ${reply.code} and loggedIn ${status.loggedIn}`);
+  if (status.configDirectory !== account.home.folder) {
+    throw new Error(`login of account ${account.id}: claude reports the configuration folder ${status.configDirectory}, not the home ${account.home.folder}`);
+  }
+  return { login: status.loggedIn, expires: status.loginExpiresAt };
 }
 
-// The parameters of core.layout.open for the terminal tab that runs the login of the cli in the home of the account.
-export function loginTab(account, terminalPlugin) {
+// The parameters of core.layout.open for the terminal tab that runs the cli in the home of the account, in the working folder in which
+// its members start: the first start of claude asks for the text style, the login and the trust of that folder, which the person answers
+// once; codex login ends after the login.
+export function loginTab(account, terminalPlugin, directory) {
   if (account.home === null) throw new Error(`account ${account.id} has no home`);
+  if (typeof directory !== "string" || !directory.startsWith("/")) {
+    throw new Error(`the login of account ${account.id} needs an absolute working folder, not ${directory}`);
+  }
   const name = account.home.variable === HOME_VARIABLES.claude ? "claude" : "codex";
   return {
     card: "current", plugin: terminalPlugin,
-    params: { program: "env", args: [`${account.home.variable}=${account.home.folder}`, account.cli, ...LOGIN_ARGS[name]], title: `${account.id} 로그인` },
+    params: { program: "env", args: [`${account.home.variable}=${account.home.folder}`, account.cli, ...LOGIN_ARGS[name]], directory, title: `${account.id} 로그인` },
   };
 }
 

@@ -2,7 +2,7 @@
 // The rules are those of ui/accounts.js; the literal values are the expectations (docs/spec/definitions.md#account-homes).
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defineAccount, homeOf, keychainService, loginOf, loginProgram, loginTab, parseAccounts, removeAccount } from "../ui/accounts.js";
+import { defineAccount, homeOf, loginOf, loginTab, parseAccounts, removeAccount, statusProgram } from "../ui/accounts.js";
 
 const DATA = "/config/plugin-data/agents";
 const CLAUDE = { id: "claude-main", cli: "claude", args: ["--verbose"], env: ["ANTHROPIC_API_KEY"], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude-main` } };
@@ -62,31 +62,41 @@ test("parseAccounts accepts an empty list and refuses another form, naming the f
   assert.throws(() => parseAccounts([{ ...CLAUDE, home: { variable: "CLAUDE_CONFIG_DIR", folder: "x" } }]), /account home must be null or/);
 });
 
-test("keychainService names the keychain item of the login of a claude home by the first 8 hexadecimal digits of the SHA-256 of the folder", async () => {
-  const digest = (await import("node:crypto")).createHash("sha256").update("/x/accounts/work").digest("hex").slice(0, 8);
-  assert.equal(await keychainService("/x/accounts/work"), `Claude Code-credentials-${digest}`);
+test("statusProgram reads the login of a home with the documented status command of its cli, and of no home nothing", () => {
+  assert.deepEqual(statusProgram(CLAUDE), { name: "claude-status", args: [`CLAUDE_CONFIG_DIR=${CLAUDE.home.folder}`, "claude", "auth", "status", "--json"] });
+  assert.deepEqual(statusProgram(CODEX), { name: "codex-status", args: [`CODEX_HOME=${CODEX.home.folder}`, "codex", "login", "status"] });
+  assert.equal(statusProgram(OTHER), null);
 });
 
-test("loginProgram reads the login of a claude home from the keychain and of a codex home from auth.json, and of no home nothing", async () => {
-  assert.deepEqual(await loginProgram(CLAUDE), { name: "claude-login", args: ["find-generic-password", "-s", await keychainService(CLAUDE.home.folder)] });
-  assert.deepEqual(await loginProgram(CODEX), { name: "codex-login", args: ["-f", `${CODEX.home.folder}/auth.json`] });
-  assert.equal(await loginProgram(OTHER), null);
+// The status JSON of claude auth status --json, as claude 2.1.331 prints it for a home.
+const claudeStatus = (loggedIn, configDirectory, loginExpiresAt) => JSON.stringify({ loggedIn, authMethod: loggedIn ? "claude.ai" : "none", configDirectory, loginExpiresAt });
+const reply = (code, stdout) => ({ code, stdout, stderr: "", truncated: { stdout: false, stderr: false } });
+
+test("loginOf reads the login and its end from the status JSON of a claude home", () => {
+  assert.deepEqual(loginOf(CLAUDE, reply(0, claudeStatus(true, CLAUDE.home.folder, "2027-11-25T00:00:00.000Z"))), { login: true, expires: "2027-11-25T00:00:00.000Z" });
+  assert.deepEqual(loginOf(CLAUDE, reply(1, claudeStatus(false, CLAUDE.home.folder, null))), { login: false, expires: null });
 });
 
-test("loginOf reads the exit status of the login program and refuses another status, naming the account", () => {
-  assert.equal(loginOf(CLAUDE, 0), true);
-  assert.equal(loginOf(CLAUDE, 44), false);
-  assert.equal(loginOf(CODEX, 0), true);
-  assert.equal(loginOf(CODEX, 1), false);
-  assert.throws(() => loginOf(CLAUDE, 1), /login of account claude-main: the program claude-login ended with status 1/);
-  assert.throws(() => loginOf(CODEX, 2), /login of account codex-main: the program codex-login ended with status 2/);
+test("loginOf refuses a claude status of another configuration folder, a status that contradicts its exit status, and output that is not the status JSON", () => {
+  assert.throws(() => loginOf(CLAUDE, reply(0, claudeStatus(true, "/Users/person/.claude", null))), /login of account claude-main: claude reports the configuration folder \/Users\/person\/\.claude, not the home \/config\/plugin-data\/agents\/accounts\/claude-main/);
+  assert.throws(() => loginOf(CLAUDE, reply(1, claudeStatus(true, CLAUDE.home.folder, null))), /login of account claude-main: claude-status ended with status 1 and loggedIn true/);
+  assert.throws(() => loginOf(CLAUDE, reply(0, "not json")), /login of account claude-main: claude-status printed no status JSON/);
+  assert.throws(() => loginOf(CLAUDE, reply(2, "")), /login of account claude-main: claude-status ended with status 2/);
+  assert.throws(() => loginOf(CLAUDE, { ...reply(0, claudeStatus(true, CLAUDE.home.folder, null)), truncated: { stdout: true, stderr: false } }), /login of account claude-main: claude-status output was truncated/);
 });
 
-test("loginTab opens a terminal tab that runs the login of the cli in the home of the account", () => {
-  assert.deepEqual(loginTab(CLAUDE, "terminal"), {
+test("loginOf reads the login of a codex home from the exit status of codex login status", () => {
+  assert.deepEqual(loginOf(CODEX, reply(0, "Logged in using ChatGPT\n")), { login: true, expires: null });
+  assert.deepEqual(loginOf(CODEX, reply(1, "Not logged in\n")), { login: false, expires: null });
+  assert.throws(() => loginOf(CODEX, reply(2, "")), /login of account codex-main: codex-status ended with status 2/);
+});
+
+test("loginTab opens a terminal tab in the working folder that runs the cli in the home of the account", () => {
+  assert.deepEqual(loginTab(CLAUDE, "terminal", "/work/site"), {
     card: "current", plugin: "terminal",
-    params: { program: "env", args: [`CLAUDE_CONFIG_DIR=${CLAUDE.home.folder}`, "claude"], title: "claude-main 로그인" },
+    params: { program: "env", args: [`CLAUDE_CONFIG_DIR=${CLAUDE.home.folder}`, "claude"], directory: "/work/site", title: "claude-main 로그인" },
   });
-  assert.deepEqual(loginTab(CODEX, "terminal").params.args, [`CODEX_HOME=${CODEX.home.folder}`, "codex", "login"]);
-  assert.throws(() => loginTab(OTHER, "terminal"), /account gemini has no home/);
+  assert.deepEqual(loginTab(CODEX, "terminal", "/work/site").params.args, [`CODEX_HOME=${CODEX.home.folder}`, "codex", "login"]);
+  assert.throws(() => loginTab(OTHER, "terminal", "/work/site"), /account gemini has no home/);
+  assert.throws(() => loginTab(CLAUDE, "terminal", "work/site"), /the login of account claude-main needs an absolute working folder, not work\/site/);
 });

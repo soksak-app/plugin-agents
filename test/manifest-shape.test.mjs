@@ -128,7 +128,7 @@ test("plugin.json declares the commands agents.account.define, agents.account.re
   assert.deepEqual(commands, [
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card, in the working folder cwd, that runs the cli of the account in its home folder with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder: claude asks for its text style, its login and the trust of the folder, and codex runs its login. Closes the definition dialog. Refuses an account without a home and a cwd that is not an absolute path.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cwd": {"type": "string"}}, "required": ["id", "cwd"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
   ]);
 });
 
@@ -184,7 +184,7 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
     },
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.account.login", "description": "Opens a terminal tab in the current card, in the working folder cwd, that runs the cli of the account in its home folder with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder: claude asks for its text style, its login and the trust of the folder, and codex runs its login. Closes the definition dialog. Refuses an account without a home and a cwd that is not an absolute path.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cwd": {"type": "string"}}, "required": ["id", "cwd"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {
       name: "agents.group.open",
       description: "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
@@ -234,22 +234,25 @@ test("package.json declares the core range of the plugin and the files of its re
 });
 
 // The status agents.definitions (A13) is removed: the room reads the stored definitions and accounts (F1075), so no status is declared.
-test("plugin.json declares the status agents.definition-dialog.accounts with the login of each account", () => {
+test("plugin.json declares the status agents.definition-dialog.accounts with the login of each account and its end", () => {
   assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts"]);
-  assert.deepEqual(manifest.exposes.status[0].schema.properties.accounts.items.required, ["id", "cli", "login"]);
+  assert.deepEqual(manifest.exposes.status[0].schema.properties.accounts.items.required, ["id", "cli", "login", "expires"]);
 });
 
 // The programs of the account homes (docs/spec/definitions.md#account-homes): each argument is literal or matches a pattern that keeps it
-// in the folder accounts of the data folder of the plugin, or names the keychain item of a claude login.
-test("plugin.json declares the programs account-home, claude-login, codex-login and person-home whose arguments stay in the account homes", () => {
+// in the folder accounts of the data folder of the plugin; the status programs run the documented status command of the cli in a home.
+test("plugin.json declares the programs account-home, claude-status, codex-status and person-home whose arguments stay in the account homes", () => {
   assert.deepEqual(manifest.programs, {
     "account-home": { program: "/bin/mkdir", args: ["-p", "-m", "700", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
-    "claude-login": { program: "/usr/bin/security", args: ["find-generic-password", "-s", { pattern: "Claude Code-credentials-[0-9a-f]{8}" }] },
-    "codex-login": { program: "/bin/test", args: ["-f", { pattern: "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}/auth\\.json" }] },
+    "claude-status": { program: "/usr/bin/env", args: [{ pattern: "CLAUDE_CONFIG_DIR=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }, "auth", "status", "--json"] },
+    "codex-status": { program: "/usr/bin/env", args: [{ pattern: "CODEX_HOME=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { pattern: "[^\\s]{1,255}" }, "login", "status"] },
     "person-home": { program: "/usr/bin/printenv", args: ["HOME"] },
   });
   const full = (slot, text) => new RegExp(`^(?:${slot.pattern})$`).test(text);
   assert.ok(full(manifest.programs["account-home"].args[3], "/Users/me/Library/Application Support/app/plugin-data/agents/accounts/work"));
   assert.ok(!full(manifest.programs["account-home"].args[3], "/Users/me/plugin-data/agents/accounts/../x"));
-  assert.ok(full(manifest.programs["codex-login"].args[1], "/c/plugin-data/agents/accounts/work/auth.json"));
+  assert.ok(full(manifest.programs["claude-status"].args[0], "CLAUDE_CONFIG_DIR=/c/plugin-data/agents/accounts/work"));
+  assert.ok(!full(manifest.programs["claude-status"].args[0], "CODEX_HOME=/c/plugin-data/agents/accounts/work"));
+  assert.ok(full(manifest.programs["codex-status"].args[1], "/opt/bin/codex"));
+  assert.ok(!full(manifest.programs["codex-status"].args[1], "codex login"));
 });

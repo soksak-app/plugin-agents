@@ -17,13 +17,15 @@ Maker group을 목록에 올릴 때([makers](makers.ko.md#목록)) 에이전트�
 
 Agent CLI는 login과 설정을 configuration home에 두므로, 한 CLI의 두 계정은 각자 home을 가질 때만 두 login을 가진다. `cli`의 마지막 경로 segment가 home을 정한다. `claude`는 변수 `CLAUDE_CONFIG_DIR`에서, `codex`는 `CODEX_HOME`에서 home을 읽고, 다른 CLI의 계정은 `home: null`이다. Plugin이 `agents.account.define`이나 목록으로 `claude`나 `codex`의 계정을 정의하면 `home`을 `{variable, folder}`로 두며, `folder`는 `<dataFolder>/accounts/<id>`다. `dataFolder`는 view의 start values에 있는 plugin의 data folder다([start values](https://github.com/soksak-app/core/blob/main/docs/spec/native-surfaces.ko.md#view-표면)). Plugin은 계정을 저장하기 전에 선언된 program `account-home`, 곧 `mkdir -p -m 700 <folder>`로 folder를 만든다. Folder는 식별자에만 달려 있으므로 모든 project에서 같은 식별자의 계정은 home 하나와 그 login을 함께 쓴다. 다른 project가 같은 식별자를 쓸 수 있으므로 계정을 지워도 home은 남는다.
 
-Home의 login은 비밀 값 없이 읽는다.
+Home의 login은 그 CLI의 문서화된 status 명령으로 읽으며, 이 명령은 비밀 값을 출력하지 않는다.
 
-- `claude`: program `claude-login`, 곧 `security find-generic-password -s "Claude Code-credentials-<hash>"`이며, `<hash>`는 `folder`의 SHA-256 앞 16진수 8자리다. CLI는 home의 login을 그 keychain 항목에 둔다. 종료 상태 0은 `true`, 44는 `false`다.
-- `codex`: program `codex-login`, 곧 `test -f <folder>/auth.json`이다. 종료 상태 0은 `true`, 1은 `false`다.
-- `home: null`인 계정의 login은 `null`이다. 다른 종료 상태는 계정과 상태를 밝히는 오류다.
+- `claude`: program `claude-status`, 곧 `env CLAUDE_CONFIG_DIR=<folder> <cli> auth status --json`이다. `loggedIn`이 `true`이면 0으로, `false`이면 1로 끝나고, 읽은 folder인 `configDirectory`와 login의 종료 시각 또는 `null`인 `loginExpiresAt`을 출력한다. `folder`와 다른 `configDirectory`는 계정과 두 folder를 밝히는 오류다. 그때 CLI는 다른 login을 읽기 때문이다. `loggedIn`과 어긋나는 종료 상태와 status JSON이 아닌 출력은 계정을 밝히는 오류다.
+- `codex`: program `codex-status`, 곧 `env CODEX_HOME=<folder> <cli> login status`이다. 종료 상태 0은 `true`, 1은 `false`다.
+- `home: null`인 계정의 login은 `null`이다. 다른 종료 상태와 잘린 출력은 계정과 program을 밝히는 오류다.
 
-`agents.account.login {id}`는 현재 card에 setting `terminalPlugin`의 plugin으로 parameter `{program: "env", args: ["<variable>=<folder>", <cli>, ...<login args>], title: "<id> 로그인"}`의 terminal 탭을 연다. Login 인자는 빈 home에서 처음 시작할 때 login을 묻는 `claude`는 `[]`, `codex`는 `["login"]`이다. `home: null`인 계정은 `account <id> has no home`으로, 어떤 계정도 갖지 않은 식별자는 `account <id> is not defined`로 거부한다.
+계정의 login은 `{login, expires}`다. `expires`는 `claude`의 `loginExpiresAt`이며, CLI를 써도 늘어나지 않는다. `codex`와 home이 없는 계정은 `null`이다.
+
+`agents.account.login {id, cwd}`는 현재 card에 setting `terminalPlugin`의 plugin으로 parameter `{program: "env", args: ["<variable>=<folder>", <cli>, ...<login args>], directory: cwd, title: "<id> 로그인"}`의 terminal 탭을 연다. Login 인자는 `claude`가 `[]`다. 빈 home에서 처음 시작하는 `claude`는 text style, login, 작업 folder의 trust를 물으므로, 사람은 그 계정의 member가 시작하는 folder에서 각각을 한 번 답한다. `codex`는 `["login"]`이며, login이 끝나면 끝난다. 절대 경로가 아닌 `cwd`는 `the login of account <id> needs an absolute working folder, not <cwd>`로, `home: null`인 계정은 `account <id> has no home`으로, 어떤 계정도 갖지 않은 식별자는 `account <id> is not defined`로 거부한다.
 
 ## 해석
 
@@ -46,7 +48,7 @@ Clubhouse room은 두 key를 `runtime.data.get {key, plugin: "agents"}`(core F10
 - 그룹 행 오른쪽 끝의 `+`(element `agents.definitions.add-definition`)는 `agents.definition.open {group}`을 실행하며, 이 command는 식별자 없이 대화상자 `definition`을 열어 그룹에 정의를 추가하게 한다.
 - 정의 행을 더블클릭하면 `agents.definition.open {group, id}`가 실행되며, 대화상자 `definition`이 그 식별자로 열린다. 대화상자는 저장된 record와 `core.roles`에서 그 식별자의 role을 보인다. 보이는 값은 이름, 계정, 작업 폴더, role 텍스트, 한국어 role 텍스트, role 파일이다. 저장은 `agents.definition.change`를 실행하고 대화상자를 닫는다.
 - 대화상자 `definition`의 필드는 이름, 계정(저장된 계정의 select이며, 각 option은 식별자와, login이 `false`면 ` (로그인 필요)`를 보인다), 작업 폴더, role 텍스트, 한국어 role 텍스트, role 파일(한 줄에 절대 경로 하나)이다. 저장은 `agents.definition.define {group, id, name, account, cwd, text, ko, files}`을 실행하며, `id`는 대화상자가 열릴 때 만든 새 식별자다. command가 성공한 뒤에 저장이 대화상자를 닫는다.
-- 계정 select 아래에 대화상자는 버튼 로그인(element `agents.definition-dialog.login`)을 두며, 선택한 계정의 login이 `false`인 동안 켜진다. 이 버튼은 선택한 계정으로 `agents.account.login {id}`를 실행하고 대화상자를 닫는다. login은 대화상자가 덮는 terminal 탭에서 돌기 때문이다. 새 계정 줄은 식별자 필드, cli 필드, 버튼 추가(element `agents.definition-dialog.account-id`, `agents.definition-dialog.account-cli`, `agents.definition-dialog.account-add`)를 가지며, 추가는 `agents.account.define {id, cli, args: [], env: []}`를 실행하고 새 계정을 고른다. 대화상자는 열릴 때와 계정을 더한 뒤 나열한 각 계정의 login을 읽고, status `agents.definition-dialog.accounts`, 곧 식별자 순서의 `{accounts: [{id, cli, login}]}`로 게시한다.
+- 계정 select 아래에 대화상자는 버튼 로그인(element `agents.definition-dialog.login`)을 두며, 선택한 계정의 login이 `false`인 동안 켜진다. 이 버튼은 선택한 계정과 대화상자의 작업 folder로 `agents.account.login {id, cwd}`를 실행하고 대화상자를 닫는다. login은 대화상자가 덮는 terminal 탭에서 돌기 때문이다. 새 계정 줄은 식별자 필드, cli 필드, 버튼 추가(element `agents.definition-dialog.account-id`, `agents.definition-dialog.account-cli`, `agents.definition-dialog.account-add`)를 가지며, 추가는 `agents.account.define {id, cli, args: [], env: []}`를 실행하고 새 계정을 고른다. 대화상자는 열릴 때와 계정을 더한 뒤 나열한 각 계정의 login을 읽고, status `agents.definition-dialog.accounts`, 곧 식별자 순서의 `{accounts: [{id, cli, login, expires}]}`로 게시한다.
 - 저장이나 추가의 거부는 대화상자 page, 곧 그 page의 error display에 거부 문구와 함께 보이고, 그 순간 `runtime.error`로 기록된다. 대화상자는 열린 채로 있고 저장된 값은 바뀌지 않는다. 각 필드는 자기가 주는 parameter와 함께 저장 command를 표시하므로, 필드는 연결된 control이다. 취소 버튼과 Escape는 `agents.dialog.cancel`을 실행하며, 이 command는 아무것도 바꾸지 않고 대화상자를 닫는다.
 
 `agents.definition.change`는 `agents.definition.define`의 검사를 실행하고, 식별자가 그룹의 member이고 저장된 정의여야 한다고 요구한다. 같은 식별자로 `core.role.define`을 호출해 role을 다시 정의하며, 이름, 계정, 작업 폴더를 저장한다. record의 plugin, maker, launch는 그대로 둔다.

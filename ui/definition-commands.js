@@ -4,7 +4,7 @@
 // values. The rules of each store are those of groups.js, accounts.js,
 // definition-records.js and roles.js.
 import { createGroup, parseGroups } from "./groups.js";
-import { defineAccount, homeFolderArgs, loginOf, loginProgram, loginTab, parseAccounts, removeAccount } from "./accounts.js";
+import { defineAccount, homeFolderArgs, loginOf, loginTab, parseAccounts, removeAccount, statusProgram } from "./accounts.js";
 import { defineDefinition, definitionsUsingAccount, parseDefinitions } from "./definition-records.js";
 import { addMember, parseFiles } from "./roles.js";
 
@@ -93,24 +93,25 @@ export async function removeAccountRecord(api, { id }) {
   return null;
 }
 
-// The command agents.account.login {id}: opens a terminal tab in the current card that runs the login of the cli in the home of the account.
-export async function loginAccount(api, { id }) {
+// The command agents.account.login {id, cwd}: opens a terminal tab in the current card that runs the cli in the home of the account in the
+// working folder cwd, so the person passes the first start of the cli, its login and the trust of that folder once.
+export async function loginAccount(api, { id, cwd }) {
   const account = parseAccounts((await api.data.get(ACCOUNTS)) ?? []).find((entry) => entry.id === id);
   if (account === undefined) throw new Error(`account ${id} is not defined`);
-  const tab = loginTab(account, await terminalPlugin(api));
+  const tab = loginTab(account, await terminalPlugin(api), cwd);
   await createHome(api, account);
   await api.calls.request("core.layout.open", tab);
   return { id };
 }
 
-// The login of each account, {id, cli, login}, in the order of the identifiers: true or false from the login program of its home, and
-// null for an account without a home.
+// The login of each account, {id, cli, login, expires}, in the order of the identifiers: login is true or false from the status program
+// of its home and expires the end of the login or null; an account without a home has the login null.
 export async function accountLogins(api, accounts) {
   const rows = [];
   for (const account of [...accounts].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
-    const program = await loginProgram(account);
-    const login = program === null ? null : loginOf(account, await exitStatus(api, program.name, program.args));
-    rows.push({ id: account.id, cli: account.cli, login });
+    const program = statusProgram(account);
+    const { login, expires } = program === null ? { login: null, expires: null } : loginOf(account, await api.program.run(program.name, program.args));
+    rows.push({ id: account.id, cli: account.cli, login, expires });
   }
   return rows;
 }

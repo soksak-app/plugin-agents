@@ -77,16 +77,16 @@
   },
   "programs": {
     "account-home": { "program": "/bin/mkdir", "args": ["-p", "-m", "700", { "pattern": "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }] },
-    "claude-login": { "program": "/usr/bin/security", "args": ["find-generic-password", "-s", { "pattern": "Claude Code-credentials-[0-9a-f]{8}" }] },
-    "codex-login": { "program": "/bin/test", "args": ["-f", { "pattern": "/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}/auth\\.json" }] },
+    "claude-status": { "program": "/usr/bin/env", "args": [{ "pattern": "CLAUDE_CONFIG_DIR=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { "pattern": "[^\\s]{1,255}" }, "auth", "status", "--json"] },
+    "codex-status": { "program": "/usr/bin/env", "args": [{ "pattern": "CODEX_HOME=/.+/plugin-data/agents/accounts/[a-z][a-z0-9-]{0,39}" }, { "pattern": "[^\\s]{1,255}" }, "login", "status"] },
     "person-home": { "program": "/usr/bin/printenv", "args": ["HOME"] }
   },
   "exposes": {
     "status": [
       {
         "name": "agents.definition-dialog.accounts",
-        "description": "The accounts of the definition dialog in the order of their identifiers, each with its cli and its login: true or false for the home of a claude or codex account, null for an account without a home.",
-        "schema": { "type": "object", "properties": { "accounts": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "cli": { "type": "string" }, "login": { "type": ["boolean", "null"] } }, "required": ["id", "cli", "login"] } } }, "required": ["accounts"] }
+        "description": "The accounts of the definition dialog in the order of their identifiers, each with its cli, its login and the end of the login: login is true or false for the home of a claude or codex account, from claude auth status --json or codex login status, and null for an account without a home; expires is the loginExpiresAt time of claude, or null.",
+        "schema": { "type": "object", "properties": { "accounts": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "cli": { "type": "string" }, "login": { "type": ["boolean", "null"] }, "expires": { "type": ["string", "null"] } }, "required": ["id", "cli", "login", "expires"] } } }, "required": ["accounts"] }
       }
     ],
     "element": [
@@ -166,8 +166,8 @@
       },
       {
         "name": "agents.account.login",
-        "description": "Opens a terminal tab in the current card that runs the login of the cli of the account in its home folder, with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder, and closes the definition dialog. Refuses an account without a home.",
-        "params": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] },
+        "description": "Opens a terminal tab in the current card, in the working folder cwd, that runs the cli of the account in its home folder with CLAUDE_CONFIG_DIR or CODEX_HOME set to that folder: claude asks for its text style, its login and the trust of the folder, and codex runs its login. Closes the definition dialog. Refuses an account without a home and a cwd that is not an absolute path.",
+        "params": { "type": "object", "properties": { "id": { "type": "string" }, "cwd": { "type": "string" } }, "required": ["id", "cwd"] },
         "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
       },
       {

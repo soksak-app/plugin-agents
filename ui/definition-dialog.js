@@ -77,7 +77,7 @@ async function saveDefinition(values) {
   return result;
 }
 
-// The login of each account, {id, cli, login}, as the select shows it and the status agents.definition-dialog.accounts publishes it.
+// The login of each account, {id, cli, login, expires}, as the select shows it and the status agents.definition-dialog.accounts publishes it.
 let logins = [];
 const loginWatchers = new Set();
 
@@ -112,7 +112,7 @@ async function removeAccount(values) {
   return result;
 }
 
-// The command agents.account.login {id}: opens the login tab of the account and closes the dialog, which covers that tab.
+// The command agents.account.login {id, cwd}: opens the login tab of the account in the working folder and closes the dialog, which covers that tab.
 async function login(values) {
   const result = await loginAccount(api, values);
   await bridge.runtime.dialog.close(null);
@@ -153,7 +153,7 @@ await Promise.all([
   exposure.element("agents.definition-dialog.account-id", accountIdField),
   exposure.element("agents.definition-dialog.account-cli", accountCliField),
   exposure.element("agents.definition-dialog.account-add", accountAddButton),
-  exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value }), { failed: refused }),
+  exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value, cwd: cwdField.value }), { failed: refused }),
   exposure.mark(accountIdField, ACCOUNT_DEFINE, null, "id"),
   exposure.mark(accountCliField, ACCOUNT_DEFINE, null, "cli"),
   exposure.bind(accountAddButton, ACCOUNT_DEFINE, () => ({ id: accountIdField.value.trim(), cli: accountCliField.value.trim(), args: [], env: [] }), { failed: refused }),
