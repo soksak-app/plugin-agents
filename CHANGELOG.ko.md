@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A38: version은 0.0.5이고 core 0.0.53을 요구해요.
 - A35, A37: maker group은 project에 파일을 쓰지 않는다. 기여한 object는 core 0.0.53이 각 기여에 주는 설치 folder(core F1154) 기준의 maker folder `plugin`과, 그 folder 기준의 각 agent `path`를 가진다. member `skills`, `path`, `files`는 없어졌고 거부된다. 목록은 group의 각 정의를 `launch {args, env}`와 함께 저장한다. claude agent는 maker folder의 `--plugin-dir`과 `--add-dir`로 시작하므로 hook이 실행되고 agent, skill, rule 파일이 자기 이름으로 읽히며, codex agent는 maker folder로 둔 `HOME`과 `-c shell_environment_policy.set={HOME=<사람의 home>}`(program `person-home`)로 시작하고, group의 변수는 `{home}`과 `{plugin}`을 바꾼다. 목록은 각 agent의 role을 maker folder의 절대 agent 파일로 정의한다. 명령 `agents.group.write`, 메뉴 항목 `그룹 파일 쓰기`, `ui/makers-files.js`, files sidecar 의존은 없어졌다. clubhouse는 `docs/spec/definitions.md`의 해석으로 `launch`를 적용한다. Red: 이전 코드에서 test 14개 실패, Green: `node --test test/` 112개 중 112개 통과.
 - A36: claude나 codex의 계정은 plugin data folder에 configuration home `accounts/<id>`(mode 0700)를 가지며, 정의는 그 home으로 `CLAUDE_CONFIG_DIR`나 `CODEX_HOME`을 둔 `env`로 CLI를 시작하고, 정의 대화상자는 각 계정의 login을 보이고 terminal 탭에서 login을 열며 계정을 더한다. 저장된 계정은 `home`을 더하며, 없는 계정은 거부한다. 남은 accounts page는 지웠다. core 0.0.53이 필요하다.
 - A31: 정의 행을 더블클릭하면 저장된 정의와 role을 보이는 정의 대화상자가 열리며, 저장은 새 command `agents.definition.change`를 실행한다. 이 command는 `agents.definition.define`의 검사를 적용하고, `core.role.define`으로 role을 다시 정의하며, 이름, 계정, 작업 폴더를 저장한다. core F1150과 F1151을 담은 Wails debug 창에서 확인했다.
