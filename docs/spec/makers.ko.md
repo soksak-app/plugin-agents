@@ -48,6 +48,8 @@ Group을 기여하는 maker plugin은 moai(`.moai/`, claude 전용, agent마다 
 2. `folders`의 각 항목은 files sidecar의 `createFolder`로 프로젝트 루트 기준으로 만든다. 각 `files` 항목은 상위 폴더가 생긴 뒤 files sidecar의 `write`로 쓴다. `folders` 밖의 `files` path는 거부한다. 요청은 항목의 값을 담은 `executable`을 가지며, 항목에 없으면 `false`다. 현재 text가 항목의 text와 같고 byte order mark가 없는 파일은 쓰지 않는다(byte order mark는 쓰기가 없앤다). 다만 실행 가능한 항목은 예외다. Sidecar는 mode를 알려 주지 않으므로, 실행 가능한 항목은 파일의 현재 version으로 다시 쓰며, 이는 text를 유지하고 mode를 0755로 설정한다. Plugin은 `plugin.json`의 `dependencies`에 files sidecar를 `>=0.0.13`으로 선언한다. `executable`을 읽는 version이며, 이전 sidecar는 member를 무시하고 실행 bit가 없는 파일을 만든다.
 3. 각 agent의 정의는 role 파일을 가진다. `files`는 agent `path`와 같은 `files` 항목의 프로젝트 루트 기준 절대 경로이고(`core.role.define`이 절대 경로를 받는다), `text`와 `ko`는 각각 그 파일을 밝히는 한 줄이다. Role 식별자는 목록의 식별자다. 각 role은 `core.role.define {id, text, ko, files}`로 정의한다.
 
+group이 연결된 maker group인 definition 행의 메뉴에는 `그룹 파일 쓰기` 항목이 `삭제` 항목 위에 있고, 이 항목은 그 group의 식별자로 `agents.group.write {group}`를 실행한다.
+
 명령은 `{written}`을 돌려준다. 쓰기가 쓴 `files` 항목의 프로젝트 경로이며 `files`의 순서를 따른다. 같은 파일은 쓰지도 나열하지도 않는다. Core의 거부는 명령을 그 text와 함께 멈춘다. 거부 전에 쓴 파일은 남으며, 같은 명령을 다시 실행하면 다른 파일만 쓴다.
 
 Model과 환경 변수는 적용하지 않는다. 저장된 정의에 그 값을 담는 member가 없기 때문이다([definitions](definitions.ko.md#key)).

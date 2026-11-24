@@ -2,7 +2,7 @@
 // carry #1, #2 in their order, and a folder path ends with `/`.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { definitionNodes, iconProgram, runningNodes, treePaths } from "../ui/tree-paths.js";
+import { definitionMenu, definitionNodes, iconProgram, runningNodes, treePaths } from "../ui/tree-paths.js";
 
 test("treePaths numbers ten rows of one name #1 to #10, so they are ten paths", () => {
   const rows = Array.from({ length: 10 }, (_, index) => ({ kind: "session", id: `s${index}`, name: "claude manager-lead", activity: null, program: null }));
@@ -26,6 +26,19 @@ test("treePaths lists each definition group with its members by their identifier
   const { paths, items } = treePaths(definitionNodes(rows));
   assert.deepEqual(paths, ["MoAI/", "MoAI/moai-backend", "MoAI/moai-lead"]);
   assert.deepEqual(items.get("MoAI/moai-lead"), { group: "moai", member: rows[0].members[1] });
+});
+
+// A34: the files of a maker group reach the project only through agents.group.write, so the menu of a definition of a connected maker
+// group offers that write; a definition of another group offers only its removal.
+test("definitionMenu offers the write of the maker group to a definition of a connected maker group", () => {
+  const member = { id: "moai-builder-harness", defined: false };
+  assert.deepEqual(definitionMenu({ group: "moai", member }, ["moai", "harness"]), [
+    { label: "그룹 파일 쓰기", command: "agents.group.write", params: { group: "moai" } },
+    { label: "삭제", command: "agents.definition.remove", params: { group: "moai", id: "moai-builder-harness" } },
+  ]);
+  assert.deepEqual(definitionMenu({ group: "g1", member: { id: "mine", defined: true } }, ["moai"]), [
+    { label: "삭제", command: "agents.definition.remove", params: { group: "g1", id: "mine" } },
+  ]);
 });
 
 test("treePaths refuses a row without a name", () => {

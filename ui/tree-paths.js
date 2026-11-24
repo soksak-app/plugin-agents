@@ -57,6 +57,16 @@ export function definitionNodes(rows) {
   }));
 }
 
+/**
+ * The menu entries of a definition row of definitionNodes: the write of the maker group (agents.group.write, docs/spec/makers.md#writing)
+ * when the group of the row is a connected maker group of makers, the identifiers of the connected items, then the removal of the
+ * definition. The files of a maker group reach the project only through that write (A34).
+ */
+export function definitionMenu({ group, member }, makers) {
+  const write = makers.includes(group) ? [{ label: "그룹 파일 쓰기", command: "agents.group.write", params: { group } }] : [];
+  return [...write, { label: "삭제", command: "agents.definition.remove", params: { group, id: member.id } }];
+}
+
 // The app name of a known CLI that differs from its program name: Claude Code reports claude-code (terminal.program-state app).
 const APP_PROGRAMS = { "claude-code": "claude" };
 

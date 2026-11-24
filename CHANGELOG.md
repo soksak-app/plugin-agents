@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A34: The menu of a definition of a connected maker group has the entry `그룹 파일 쓰기`, which runs `agents.group.write {group}`, so the agents and skills of the group reach the project `.claude`. Red: `definitionMenu offers the write of the maker group to a definition of a connected maker group` failed without the export. Green: all 118 tests of `node --test test/` pass.
 - A33: The version is 0.0.4 with core 0.0.51.
 - A29-2, A30: The running agents and the definitions sections draw their trees with the bundled `@pierre/trees`, checked in the application window.
 - A32: A row of claude, codex or gemini shows the icon of its program from `@lobehub/icons-static-svg`.

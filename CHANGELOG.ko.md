@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A34: 연결된 maker group의 definition 메뉴에 `그룹 파일 쓰기`가 있고, 이 항목은 `agents.group.write {group}`를 실행해서 group의 agent와 skill을 project `.claude`에 쓴다. Red: `definitionMenu offers the write of the maker group to a definition of a connected maker group`는 export가 없어 실패했다. Green: `node --test test/`의 118개 test가 모두 통과한다.
 - A33: version은 0.0.4이며 core 0.0.51을 요구한다.
 - A29-2, A30: 실행 중인 에이전트와 에이전트 정의 섹션은 번들된 `@pierre/trees`로 tree를 그리며, 애플리케이션 창에서 확인했다.
 - A32: claude, codex, gemini 행은 `@lobehub/icons-static-svg`의 프로그램 아이콘을 보인다.

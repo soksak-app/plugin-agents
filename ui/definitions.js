@@ -12,7 +12,7 @@ import { addMember, parseFiles, removeMember, roleRows } from "./roles.js";
 import { createRequests } from "./makers-files.js";
 import { listGroup, storedChanges, writeGroup } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
-import { definitionNodes } from "./tree-paths.js";
+import { definitionMenu, definitionNodes } from "./tree-paths.js";
 import { createTreeView } from "./tree-view.js";
 
 const CREATE = "agents.group.create";
@@ -45,14 +45,15 @@ let groups = {};
 let roles = null;
 
 // The tree of the groups and their definitions, drawn by the tree library (tree-view.js) once the binder exists. A right click on a
-// definition opens a menu whose entry runs agents.definition.remove with its group and identifier.
+// definition opens a menu whose entries run agents.group.write for a connected maker group and agents.definition.remove with its group
+// and identifier.
 let tree = null;
 const treeView = () => tree ??= createTreeView(list, {
   exposure,
   rowOf: () => ({ name: "agents.definitions.row", command: null, params: null }),
   picked: () => {},
   detail: ({ member }) => (member.defined ? null : "정의되지 않음"),
-  menu: ({ group, member }) => [{ label: "삭제", command: REMOVE, params: { group, id: member.id } }],
+  menu: (value) => definitionMenu(value, makers.map((entry) => entry.item.id)),
   failed: (error) => reportError("agents.definitions", `row: ${error?.message ?? error}`),
 });
 
