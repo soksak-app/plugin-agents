@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dependencies", "settings", "extends", "data", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "dependencies", "settings", "extends", "data", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -24,7 +24,7 @@ test("plugin.json declares the identifier agents and a description of one to two
   assert.ok(manifest.description.length >= 1 && manifest.description.length <= 200, "description length is outside 1 to 200");
 });
 
-test("plugin.json declares the running agents and the agent definitions as view sections, and no accounts section", () => {
+test("plugin.json declares the running agents and the agent definitions as view sections, the definitions with the action that adds a group, and no accounts section", () => {
   assert.deepEqual(manifest.sections, [
     {
       id: "agents.running",
@@ -37,6 +37,7 @@ test("plugin.json declares the running agents and the agent definitions as view 
       name: "에이전트 정의",
       composition: { kind: "view", page: "ui/definitions.html" },
       height: "fill",
+      actions: [{ icon: "plus", label: "그룹 추가", command: "agents.group.open" }],
     },
   ]);
 });
@@ -58,6 +59,18 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
     assert.ok(exists(page), `${page} does not exist`);
     assert.match(read(page), /^<!doctype html>/i, `${page} has no doctype at its start`);
     assert.doesNotMatch(read(page), /<script\b[^>]*\btype\s*=\s*["']?importmap\b/i, `${page} holds an import map`);
+  }
+});
+
+// The dialogs of the definitions section (A28, A31): each dialog is a page of the release, which the view opens with runtime.dialog.open.
+test("plugin.json declares the dialogs group and definition as dialog pages of the release", () => {
+  assert.deepEqual(manifest.dialogs, {
+    group: { page: "ui/group-dialog.html" },
+    definition: { page: "ui/definition-dialog.html" },
+  });
+  for (const dialog of Object.values(manifest.dialogs)) {
+    assert.ok(exists(dialog.page), `${dialog.page} does not exist`);
+    assert.match(read(dialog.page), /^<!doctype html>/i, `${dialog.page} has no doctype at its start`);
   }
 });
 
@@ -133,7 +146,7 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
   assert.deepEqual(manifest.exposes.commands, [
     {
       name: "agents.group.create",
-      description: "Creates an empty group of the project with the given name and returns its identifier.",
+      description: "Creates an empty group of the project with the given name and returns its identifier. A name that a group of the project already has is refused.",
       params: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
     },
@@ -142,6 +155,18 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       description: "Defines a definition in a group: checks the group, the membership and the account, defines the role with core.role.define, then stores the definition with the plugin of the setting terminalPlugin and adds its identifier to the members of the group. The files are the absolute paths, one per line; cwd is an absolute path. Returns the identifier.",
       params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" }, name: { type: "string" }, account: { type: "string" }, cwd: { type: "string" }, text: { type: "string" }, ko: { type: "string" }, files: { type: "string" } }, required: ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
       result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.definition.change",
+      description: "Changes the definition with the identifier, which is a member of the group: checks the group, the membership, the account and the record with the same rules as agents.definition.define, redefines the role with core.role.define under the same identifier, then stores the name, the account and the cwd. The plugin and the maker of the record stay as they are. The files are the absolute paths, one per line; cwd is an absolute path. Returns the identifier.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" }, name: { type: "string" }, account: { type: "string" }, cwd: { type: "string" }, text: { type: "string" }, ko: { type: "string" }, files: { type: "string" } }, required: ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
+      result: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    },
+    {
+      name: "agents.definition.open",
+      description: "Opens the definition dialog of the window for the group. Without id the dialog adds a definition to the group; with id it shows the stored definition and its role for changing.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" } }, required: ["group"] },
+      result: { type: "null" },
     },
     {
       name: "agents.definition.remove",
@@ -177,6 +202,18 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       name: "agents.account.remove",
       description: "Removes the agent account with the identifier from the project.",
       params: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+      result: { type: "null" },
+    },
+    {
+      name: "agents.group.open",
+      description: "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
+      params: { type: "object", properties: {} },
+      result: { type: "null" },
+    },
+    {
+      name: "agents.dialog.cancel",
+      description: "Closes the dialog of the calling page without a change.",
+      params: { type: "object", properties: {} },
       result: { type: "null" },
     },
   ]);

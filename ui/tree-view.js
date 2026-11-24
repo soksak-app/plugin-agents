@@ -65,9 +65,14 @@ function themeStyles() {
  * a row, or null for none. menu(value) lists the {label, command, params} entries of the menu that a right click on a row opens, or
  * is empty for no menu. rowOf may give a null command for a row that a press does not run. icon(value) is the program of the icon of a
  * row, a key of AGENT_ICON_SYMBOLS, or null for the robot icon. failed reports an error of a press.
+ * folderAction(value) is the {name, label, title, command, params} of the control at the right end of a folder that carries a value: the
+ * label is its text, its element name marks it, and a press runs the command; null for no control. activate is null or {command,
+ * params(value)}: a double click on a row runs the command through the binder with the params of the row value, and a row whose params
+ * are null runs nothing. Both read the values that treePaths keeps.
  */
-export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], icon = () => null, failed }) {
+export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], icon = () => null, folderAction = () => null, activate = null, failed }) {
   let items = new Map();
+  let folders = new Map();
   let syncing = false;
   if (!document.getElementById("tree-menu-style")) {
     const style = document.createElement("style");
@@ -107,6 +112,10 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
       },
     },
     renderRowDecoration({ item }) {
+      if (folders.has(item.path)) {
+        const action = folderAction(folders.get(item.path));
+        return action === null ? null : { text: action.label, title: action.title };
+      }
       if (!items.has(item.path)) return null;
       const text = detail(items.get(item.path));
       return text === null ? null : { text };
@@ -120,19 +129,60 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
   tree.render({ containerWrapper: holder });
   const root = tree.getFileTreeContainer()?.shadowRoot;
   if (!root) throw new Error("the tree library draws no shadow root for its rows");
+  // The control of a folder is the text of its decoration, a span that the press runs. The library toggles a folder on a click of its row,
+  // so the control is bound with stop and the click ends at the control. The library reuses a span for another row, so each span is bound
+  // once and reads the action of its current row at the press; a span of a row without a control runs nothing.
+  const boundControls = new WeakSet();
+  const controlAction = (control) => {
+    const path = control.closest("[data-item-path]")?.dataset.itemPath;
+    return folders.has(path) ? folderAction(folders.get(path)) : null;
+  };
   const markRows = () => {
     for (const row of root.querySelectorAll("[data-item-path]")) {
-      if (!items.has(row.dataset.itemPath)) continue;
-      const { name, command, params } = rowOf(items.get(row.dataset.itemPath));
+      const path = row.dataset.itemPath;
+      const control = row.querySelector("[data-item-section='decoration'] span");
+      if (control) {
+        delete control.dataset.command;
+        delete control.dataset.params;
+        delete control.dataset.expose;
+        control.removeAttribute("role");
+        control.removeAttribute("aria-label");
+      }
+      if (folders.has(path)) {
+        const action = folderAction(folders.get(path));
+        if (action !== null && control) {
+          control.dataset.expose = action.name;
+          control.setAttribute("role", "button");
+          control.setAttribute("aria-label", action.title);
+          if (boundControls.has(control)) exposure.mark(control, action.command, action.params).catch(failed);
+          else {
+            boundControls.add(control);
+            exposure.bind(control, action.command, () => controlAction(control).params, { stop: true, when: () => controlAction(control) !== null, failed })
+              .catch(failed);
+          }
+        }
+        continue;
+      }
+      if (!items.has(path)) continue;
+      const { name, command, params } = rowOf(items.get(path));
       row.dataset.expose = name;
       if (command !== null) exposure.mark(row, command, params).catch(failed);
       // The library draws the file icon as <use href="#soksak-agent">; a row of a known program draws the symbol of its program.
-      const program = icon(items.get(row.dataset.itemPath));
+      const program = icon(items.get(path));
       const use = row.querySelector("[data-item-section='icon'] use");
       if (use) use.setAttribute("href", `#${program === null ? AGENT_ICON : `${AGENT_ICON}-${program}`}`);
     }
   };
   exposure.delegate(root).catch(failed);
+  // A double click on a row runs the command of activate through the binder, bound on the host of the shadow root with the dblclick
+  // event; the params are those of the row under the pointer, read from the composed path of the event.
+  if (activate !== null) {
+    const rowParams = (event) => {
+      const row = event.composedPath().find((node) => node.dataset?.itemPath !== undefined);
+      return row && items.has(row.dataset.itemPath) ? activate.params(items.get(row.dataset.itemPath)) : null;
+    };
+    exposure.bind(root.host, activate.command, rowParams, { event: "dblclick", when: (event) => rowParams(event) !== null, failed }).catch(failed);
+  }
   // The library reuses a row element for another item by changing its path, so a change of the path marks the rows again.
   new MutationObserver(markRows).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-item-path"] });
   const applyTheme = () => Object.entries(themeStyles()).forEach(([name, value]) => holder.style.setProperty(name, value));
@@ -142,6 +192,7 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
     show(nodes) {
       const next = treePaths(nodes);
       items = next.items;
+      folders = next.folders;
       syncing = true;
       try {
         tree.resetPaths(next.paths);

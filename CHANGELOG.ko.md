@@ -2,6 +2,8 @@
 
 [English](CHANGELOG.md)
 
+- A31: 정의 행을 더블클릭하면 저장된 정의와 role을 보이는 정의 대화상자가 열리며, 저장은 새 command `agents.definition.change`를 실행한다. 이 command는 `agents.definition.define`의 검사를 적용하고, `core.role.define`으로 role을 다시 정의하며, 이름, 계정, 작업 폴더를 저장한다. core F1150과 F1151을 담은 Wails debug 창에서 확인했다.
+- A28: 정의 섹션은 action `그룹 추가`를 선언하며, core는 그것을 섹션 머리 오른쪽 끝에 그리고 이 action은 `agents.group.open`을 실행한다. 그룹 행 오른쪽 끝의 `+`는 그룹을 접지 않고 `agents.definition.open {group}`을 실행한다. 그룹 대화상자는 `agents.group.create`를 실행하며 이 command의 이름 규칙은 이미 있는 그룹 이름을 거부하고, 정의 대화상자는 `agents.definition.define`을 실행한다. 거부는 대화상자에 보인다. tree는 member를 저장된 정의의 이름으로 보인다. 새 test는 이전 코드에서 실패했다. 대화상자에는 core F1150과 F1151이 필요하다.
 - A34: 연결된 maker group의 definition 메뉴에 `그룹 파일 쓰기`가 있고, 이 항목은 `agents.group.write {group}`를 실행해서 group의 agent와 skill을 project `.claude`에 쓴다. Red: `definitionMenu offers the write of the maker group to a definition of a connected maker group`는 export가 없어 실패했다. Green: `node --test test/`의 118개 test가 모두 통과한다.
 - A33: version은 0.0.4이며 core 0.0.51을 요구한다.
 - A29-2, A30: 실행 중인 에이전트와 에이전트 정의 섹션은 번들된 `@pierre/trees`로 tree를 그리며, 애플리케이션 창에서 확인했다.

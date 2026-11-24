@@ -22,6 +22,15 @@ test("createGroup refuses a repeated identifier and an identifier outside the fo
   assert.throws(() => createGroup({}, { id: "Bad Id", name: "B" }), /group identifier Bad Id must match/);
 });
 
+// A28: a name that a group already has is refused, after the trim, so the group dialog shows the refusal and stores nothing.
+test("createGroup refuses a name that a group already has, compared after the trim, and keeps the input unchanged", () => {
+  const before = { alpha: { name: "Alpha", members: [] } };
+  assert.throws(() => createGroup(before, { id: "beta", name: "  Alpha  " }), /group name Alpha is already used by a group/);
+  assert.throws(() => createGroup(before, { id: "beta", name: "Alpha" }), /group name Alpha is already used by a group/);
+  assert.deepEqual(before, { alpha: { name: "Alpha", members: [] } });
+  assert.deepEqual(createGroup(before, { id: "beta", name: "alpha" }).beta, { name: "alpha", members: [] });
+});
+
 test("parseGroups accepts an empty object and refuses a list or a group without a name or members", () => {
   assert.deepEqual(parseGroups({}), {});
   assert.throws(() => parseGroups([]), /groups data is not an object/);

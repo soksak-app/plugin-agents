@@ -24,3 +24,18 @@ A reader refuses a stored value of another form with an error that names `agents
 ## Readers
 
 The clubhouse room reads both keys through `runtime.data.get {key, plugin: "agents"}` (core F1075) and applies the resolution above. It holds a copy of the resolution rule because no clause lets a dependency import this plugin's module.
+
+## Controls and dialogs
+
+The definitions section lists the groups with their definitions. Its controls run declared commands, and the forms that add a group or a definition, or change one, are dialogs of the window (`dialogs` of `plugin.json`, [dialogs](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#dialogs)).
+
+- The section declares the action `그룹 추가` with the icon `plus`, which core draws at the right end of the section header; it runs `agents.group.open`, which opens the dialog `group`. While there is no group the section shows the text `그룹이 없어요.` at its top.
+- The group dialog has a name field, which holds `default` while no stored group is named `default` and is empty otherwise, and an add button. Enter in the field and the add button run `agents.group.create {name}`. A name that a group already has is refused, and the dialog shows the refusal and stores nothing. A stored group is added and the dialog closes with the identifier of the group.
+- The `+` at the right end of a group row (element `agents.definitions.add-definition`) runs `agents.definition.open {group}`, which opens the dialog `definition` without an identifier, to add a definition to the group.
+- A double click on a definition row runs `agents.definition.open {group, id}`, which opens the dialog `definition` with the identifier. The dialog shows the stored record and the role of `core.roles` with that identifier: the name, the account, the working folder, the role text, the Korean role text and the role files. Its save runs `agents.definition.change` and closes the dialog.
+- The dialog `definition` has the fields name, account (a select of the stored accounts), working folder, role text, Korean role text and role files, one absolute path per line. Its save runs `agents.definition.define {group, id, name, account, cwd, text, ko, files}`, where `id` is a new identifier made when the dialog opens. The save closes the dialog after the command succeeds.
+- A refusal of a save or of an add is shown on the dialog page, its error display, with the text of the refusal, and recorded at that moment through `runtime.error`; the dialog stays open and the stored values are unchanged. Each field marks the save command with the parameter that it gives, so the fields are connected controls. The cancel button and Escape run `agents.dialog.cancel`, which closes the dialog without a change.
+
+`agents.definition.change` runs the checks of `agents.definition.define`, requires the identifier to be a member of the group and a stored definition, redefines the role with `core.role.define` under the same identifier, and stores the name, the account and the working folder. The plugin and the maker of the record stay as they are.
+
+The commands run in the document of the dialog that binds them, because a page runs only the commands it registers. The dialogs and the section share the rules in `ui/definition-commands.js`, and the pure rules of the forms are in `ui/dialog-rules.js`.

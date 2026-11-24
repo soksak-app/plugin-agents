@@ -10,13 +10,15 @@ function segment(text) {
 }
 
 /**
- * Returns {paths, items} for nodes, each {label, children} for a folder or {label, value} for a row. A segment is the label; labels that
- * repeat among siblings are `<label> #1`, `<label> #2` and so on in their order, so rows of one label stay distinct. items maps the
- * path of each row to its value.
+ * Returns {paths, items, folders} for nodes, each {label, children} for a folder or {label, value} for a row. A folder may carry a value
+ * too, which is kept in folders. A segment is the label; labels that repeat among siblings are `<label> #1`, `<label> #2` and so on in
+ * their order, so rows of one label stay distinct. items maps the path of each row to its value, and folders the path of each valued
+ * folder to its value.
  */
 export function treePaths(nodes) {
   const paths = [];
   const items = new Map();
+  const folders = new Map();
   const walk = (list, prefix) => {
     const labels = list.map((node) => segment(node.label));
     const count = new Map();
@@ -29,6 +31,7 @@ export function treePaths(nodes) {
       const name = count.get(label) > 1 ? `${label} #${nth}` : label;
       if (Array.isArray(node.children)) {
         paths.push(`${prefix}${name}/`);
+        if (node.value !== undefined) folders.set(`${prefix}${name}/`, node.value);
         walk(node.children, `${prefix}${name}/`);
       } else {
         paths.push(`${prefix}${name}`);
@@ -37,7 +40,7 @@ export function treePaths(nodes) {
     });
   };
   walk(nodes, "");
-  return { paths, items };
+  return { paths, items, folders };
 }
 
 /** The tree nodes of the running agents tree of runningTree: a group, a card and a row, each by its name. */
@@ -49,11 +52,18 @@ export function runningNodes(tree) {
   });
 }
 
-/** The tree nodes of the definitions rows of roleRows: a group by its name with its members, each by its identifier. */
-export function definitionNodes(rows) {
+/**
+ * The tree nodes of the definitions rows of roleRows: a group by its name with its members. records holds the stored definitions by
+ * identifier; a member is drawn by the name of its definition, and by its identifier when it has no record.
+ */
+export function definitionNodes(rows, records = {}) {
   return rows.map((row) => ({
     label: row.name,
-    children: row.members.map((member) => ({ label: member.id, value: { group: row.id, member } })),
+    value: { group: row.id },
+    children: row.members.map((member) => ({
+      label: Object.hasOwn(records, member.id) ? records[member.id].name : member.id,
+      value: { group: row.id, member },
+    })),
   }));
 }
 

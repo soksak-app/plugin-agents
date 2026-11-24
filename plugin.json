@@ -19,9 +19,16 @@
         "kind": "view",
         "page": "ui/definitions.html"
       },
-      "height": "fill"
+      "height": "fill",
+      "actions": [
+        { "icon": "plus", "label": "그룹 추가", "command": "agents.group.open" }
+      ]
     }
   ],
+  "dialogs": {
+    "group": { "page": "ui/group-dialog.html" },
+    "definition": { "page": "ui/definition-dialog.html" }
+  },
   "dependencies": {
     "@soksak/sidecar-files": ">=0.0.13"
   },
@@ -69,12 +76,24 @@
   "exposes": {
     "element": [
       { "name": "agents.running.row", "description": "One visible row of the running agents tree, as the tree library draws it: a group, a card or a running agent CLI.", "many": true },
-      { "name": "agents.definitions.row", "description": "One visible row of the definitions tree, as the tree library draws it: a group or a definition.", "many": true }
+      { "name": "agents.definitions.row", "description": "One visible row of the definitions tree, as the tree library draws it: a group or a definition.", "many": true },
+      { "name": "agents.definitions.add-definition", "description": "The + at the right end of a group row of the definitions tree that opens the dialog that adds a definition to the group.", "many": true },
+      { "name": "agents.group-dialog.name", "description": "The group name field of the group dialog; Enter adds the group." },
+      { "name": "agents.group-dialog.add", "description": "The add button of the group dialog that runs agents.group.create with the name field." },
+      { "name": "agents.group-dialog.cancel", "description": "The cancel button of the group dialog that closes it without a change." },
+      { "name": "agents.definition-dialog.name", "description": "The name field of the definition dialog." },
+      { "name": "agents.definition-dialog.account", "description": "The account select of the definition dialog, which lists the accounts of the project." },
+      { "name": "agents.definition-dialog.cwd", "description": "The working folder field of the definition dialog, an absolute path." },
+      { "name": "agents.definition-dialog.text", "description": "The role text field of the definition dialog." },
+      { "name": "agents.definition-dialog.ko", "description": "The Korean role text field of the definition dialog." },
+      { "name": "agents.definition-dialog.files", "description": "The role files field of the definition dialog: absolute paths, one per line." },
+      { "name": "agents.definition-dialog.save", "description": "The save button of the definition dialog that defines a new definition or changes the stored one." },
+      { "name": "agents.definition-dialog.cancel", "description": "The cancel button of the definition dialog that closes it without a change." }
     ],
     "commands": [
       {
         "name": "agents.group.create",
-        "description": "Creates an empty group of the project with the given name and returns its identifier.",
+        "description": "Creates an empty group of the project with the given name and returns its identifier. A name that a group of the project already has is refused.",
         "params": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] },
         "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
       },
@@ -83,6 +102,18 @@
         "description": "Defines a definition in a group: checks the group, the membership and the account, defines the role with core.role.define, then stores the definition with the plugin of the setting terminalPlugin and adds its identifier to the members of the group. The files are the absolute paths, one per line; cwd is an absolute path. Returns the identifier.",
         "params": { "type": "object", "properties": { "group": { "type": "string" }, "id": { "type": "string" }, "name": { "type": "string" }, "account": { "type": "string" }, "cwd": { "type": "string" }, "text": { "type": "string" }, "ko": { "type": "string" }, "files": { "type": "string" } }, "required": ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
         "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.definition.change",
+        "description": "Changes the definition with the identifier, which is a member of the group: checks the group, the membership, the account and the record with the same rules as agents.definition.define, redefines the role with core.role.define under the same identifier, then stores the name, the account and the cwd. The plugin and the maker of the record stay as they are. The files are the absolute paths, one per line; cwd is an absolute path. Returns the identifier.",
+        "params": { "type": "object", "properties": { "group": { "type": "string" }, "id": { "type": "string" }, "name": { "type": "string" }, "account": { "type": "string" }, "cwd": { "type": "string" }, "text": { "type": "string" }, "ko": { "type": "string" }, "files": { "type": "string" } }, "required": ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
+        "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.definition.open",
+        "description": "Opens the definition dialog of the window for the group. Without id the dialog adds a definition to the group; with id it shows the stored definition and its role for changing.",
+        "params": { "type": "object", "properties": { "group": { "type": "string" }, "id": { "type": "string" } }, "required": ["group"] },
+        "result": { "type": "null" }
       },
       {
         "name": "agents.definition.remove",
@@ -118,6 +149,18 @@
         "name": "agents.account.remove",
         "description": "Removes the agent account with the identifier from the project.",
         "params": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "agents.group.open",
+        "description": "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
+        "params": { "type": "object", "properties": {} },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "agents.dialog.cancel",
+        "description": "Closes the dialog of the calling page without a change.",
+        "params": { "type": "object", "properties": {} },
         "result": { "type": "null" }
       }
     ]

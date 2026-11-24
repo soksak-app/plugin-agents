@@ -17,7 +17,8 @@ export function parseGroups(value) {
   return value;
 }
 
-// Returns a new object with the empty group added. Throws with the text of the rule when the name or the identifier is refused.
+// Returns a new object with the empty group added. Throws with the text of the rule when the name or the identifier is refused. A name that
+// a group of the object already has is refused, so the group dialog shows the refusal before it stores anything (A28).
 export function createGroup(groups, { id, name }) {
   parseGroups(groups);
   const trimmed = typeof name === "string" ? name.trim() : "";
@@ -26,6 +27,7 @@ export function createGroup(groups, { id, name }) {
   }
   if (!GROUP_ID.test(id)) throw new Error(`group identifier ${id} must match ${GROUP_ID.source}`);
   if (Object.hasOwn(groups, id)) throw new Error(`group ${id} already exists`);
+  if (Object.values(groups).some((group) => group.name === trimmed)) throw new Error(`group name ${trimmed} is already used by a group`);
   return { ...groups, [id]: { name: trimmed, members: [] } };
 }
 

@@ -21,11 +21,28 @@ test("treePaths keeps a name that does not repeat, names a card by its name and 
     "Team/터미널 · Claude Code #1/codex", "Team/터미널 · Claude Code #1/claude", "Team/터미널 · Claude Code #2/", "Team/터미널 · Claude Code #2/claude"]);
 });
 
+// A28: a group row carries its value as a folder value, so the + at its right end knows its group.
+test("treePaths keeps the value of each valued folder in folders, and a folder without a value has none", () => {
+  const rows = [{ id: "moai", name: "MoAI", members: [{ id: "moai-lead", defined: false }] }];
+  const { paths, folders } = treePaths(definitionNodes(rows));
+  assert.deepEqual(paths, ["MoAI/", "MoAI/moai-lead"]);
+  assert.deepEqual(folders, new Map([["MoAI/", { group: "moai" }]]));
+  assert.deepEqual(treePaths(runningNodes([{ kind: "card", id: "c1", name: "터미널", children: [] }])).folders, new Map());
+});
+
 test("treePaths lists each definition group with its members by their identifiers", () => {
   const rows = [{ id: "moai", name: "MoAI", members: [{ id: "moai-backend", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
   const { paths, items } = treePaths(definitionNodes(rows));
   assert.deepEqual(paths, ["MoAI/", "MoAI/moai-backend", "MoAI/moai-lead"]);
   assert.deepEqual(items.get("MoAI/moai-lead"), { group: "moai", member: rows[0].members[1] });
+});
+
+// A28: the dialog makes the identifier of a new definition, so a member with a stored definition is drawn by the name of the definition;
+// a member without a record keeps its identifier.
+test("definitionNodes labels a member by the name of its stored definition, and by its identifier without one", () => {
+  const rows = [{ id: "g1", name: "default", members: [{ id: "dmwun5e0", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
+  const records = { dmwun5e0: { name: "tester", account: "claude", plugin: "terminal", role: "dmwun5e0", cwd: "/p" } };
+  assert.deepEqual(treePaths(definitionNodes(rows, records)).paths, ["default/", "default/tester", "default/moai-lead"]);
 });
 
 // A34: the files of a maker group reach the project only through agents.group.write, so the menu of a definition of a connected maker
