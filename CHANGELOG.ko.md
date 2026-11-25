@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A47: version은 0.0.6이고 core 0.0.54를 요구해요.
 - A40, A40-1: `agents.account.login {id}`가 정의 창 안에서 login을 실행하고 탭을 열지 않아요. program `claude-login`이나 `codex-login`(`bin/login.mjs`)이 계정 home에서 `claude auth login`이나 `codex login`을 실행하고, sign-in 주소를 `sok agents.definition-dialog.sign-in`으로 창에 넘겨요. claude는 `BROWSER`(`bin/login-page.mjs`)로, codex는 출력으로 넘겨요. 창은 core 0.0.54가 dialog에 주는 document region `login`에 sign-in page를 보이고, 로그인 버튼 자리에 로그인 취소(`agents.account.login.cancel`)를 두며 `agents.definition-dialog.login-run`을 게시해요. claude login 뒤에는 program `home-settings`가 사람의 설정을 인증 key와 비밀 variable 없이 home에 복사하고 사람이 바꾼 key만 바꿔서, member가 권한을 우회하는 mode의 경고를 다시 묻지 않아요. Red: 이전 코드에서 test 13개 실패. Green: `node --test test/`가 120개 중 120개 통과. core F1163과 F1164를 넣은 debug 창이 `claude auth login`의 sign-in page를 창 안에 보였어요.
 - A38: version은 0.0.5이고 core 0.0.53을 요구해요.
 - A39: 계정 home의 login을 CLI가 문서화하지 않은 keychain 항목과 `auth.json` 파일 대신 `claude auth status --json`(program `claude-status`)과 `codex login status`(program `codex-status`)로 읽어요. claude는 `configDirectory`로 그 home을 밝혀야 해요. status `agents.definition-dialog.accounts`가 각 login의 종료 시각을 `expires`로 주고, `agents.account.login {id, cwd}`가 정의의 작업 folder에서 login tab을 열어서 claude의 첫 시작이 text style, login, 그 folder의 trust를 한 번에 물어요. Red: `test/accounts.test.mjs`가 load에 실패했고 `test/manifest-shape.test.mjs`의 test 3개가 실패했어요. Green: 113개 중 113개 통과.
