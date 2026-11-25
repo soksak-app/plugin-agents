@@ -1,6 +1,6 @@
 // The group dialog of the definitions section (A28): a dialog of the window with the group name field and the add button. The field holds
-// default while no stored group is named default, and empty otherwise. Enter or the add button runs agents.group.create, and a success
-// closes the dialog with the identifier of the group. A refusal shows its text in the dialog and is written to the application log.
+// default while no stored group is named default, and empty otherwise. Enter or the add button runs agents.group.add, which stores the
+// group and then closes the dialog with its identifier. A refusal shows its text in the dialog and is written to the application log.
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
@@ -9,6 +9,7 @@ import { defaultGroupName } from "./dialog-rules.js";
 import { createGroupRecord } from "./definition-commands.js";
 
 const CREATE = "agents.group.create";
+const ADD = "agents.group.add";
 const CANCEL = "agents.dialog.cancel";
 const KEY = "groups";
 const WHERE = "agents.group-dialog";
@@ -40,9 +41,16 @@ function refused(error) {
   reportError(WHERE, text);
 }
 
-// The command agents.group.create {name} of this dialog: stores the group, then closes the dialog with the identifier of the group.
+// The command agents.group.create {name} of this dialog: stores the group and answers its caller with the identifier; it leaves the
+// dialog open, because a close ends every call that waits on the dialog (A56).
 async function create(params) {
-  const result = await createGroupRecord(api, params);
+  return createGroupRecord(api, params);
+}
+
+// The command agents.group.add {name}, which Enter and the add button run: stores the group, then ends the dialog explicitly with the
+// identifier, which the opener of the dialog receives.
+async function add(params) {
+  const result = await create(params);
   await bridge.runtime.dialog.close(result);
   return result;
 }
@@ -55,14 +63,15 @@ async function cancel() {
 
 await Promise.all([
   exposure.command(CREATE, create), bridge.commands.register(CREATE, create),
+  exposure.command(ADD, add), bridge.commands.register(ADD, add),
   exposure.command(CANCEL, cancel), bridge.commands.register(CANCEL, cancel),
 ]);
 await Promise.all([
   exposure.element("agents.group-dialog.name", nameField),
   exposure.element("agents.group-dialog.add", addButton),
   exposure.element("agents.group-dialog.cancel", cancelButton),
-  exposure.bind(nameField, CREATE, () => ({ name: nameField.value }), { event: "keydown", when: (event) => event.key === "Enter", failed: refused }),
-  exposure.bind(addButton, CREATE, () => ({ name: nameField.value }), { failed: refused }),
+  exposure.bind(nameField, ADD, () => ({ name: nameField.value }), { event: "keydown", when: (event) => event.key === "Enter", failed: refused }),
+  exposure.bind(addButton, ADD, () => ({ name: nameField.value }), { failed: refused }),
   exposure.bind(cancelButton, CANCEL, {}, { failed: refused }),
 ]);
 document.addEventListener("keydown", (event) => {

@@ -198,6 +198,8 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       params: { type: "object", properties: {} },
       result: { type: "null" },
     },
+    {"name": "agents.definition.save", "description": "Runs agents.definition.define, or agents.definition.change for a dialog of a stored definition, then closes the definition dialog with the identifier, which its opener receives. The save button of the dialog runs it; the close ends the call.", "params": {"type": "object", "properties": {"group": {"type": "string"}, "id": {"type": "string"}, "name": {"type": "string"}, "account": {"type": "string"}, "cwd": {"type": "string"}, "text": {"type": "string"}, "ko": {"type": "string"}, "files": {"type": "string"}}, "required": ["group", "id", "name", "account", "cwd", "text", "ko", "files"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+    {"name": "agents.group.add", "description": "Runs agents.group.create with the name, then closes the group dialog with the identifier, which its opener receives. Enter in the name field and the add button of the dialog run it; the close ends the call.", "params": {"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {
       name: "agents.dialog.cancel",
       description: "Closes the dialog of the calling page without a change.",

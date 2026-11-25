@@ -1,7 +1,7 @@
 // The definition dialog of the definitions section (A28, A31): a dialog of the window with the fields of a definition in a group. Its start
 // values name the group and an identifier. Without an identifier the save defines a new definition (agents.definition.define); with one,
-// the dialog shows the stored definition and its role from core.roles, and the save changes it (agents.definition.change). A success closes
-// the dialog. A refusal shows its text in the dialog and is written to the application log. The account select shows the login of each
+// the dialog shows the stored definition and its role from core.roles, and the save changes it (agents.definition.change). The save
+// button runs agents.definition.save, which stores and then closes the dialog. A refusal shows its text in the dialog and is written to the application log. The account select shows the login of each
 // account, the login button runs the login of the selected account inside the dialog, whose sign-in page the region login shows, and the
 // new account row adds an account (A36, A40, docs/spec/definitions.md#controls-and-dialogs).
 import { createExpose } from "@soksak/plugin-api";
@@ -14,6 +14,7 @@ import { accountLogins, changeDefinitionRecord, defineAccountRecord, defineDefin
 
 const DEFINE = "agents.definition.define";
 const CHANGE = "agents.definition.change";
+const SAVE = "agents.definition.save";
 const CANCEL = "agents.dialog.cancel";
 const ACCOUNT_DEFINE = "agents.account.define";
 const ACCOUNT_REMOVE = "agents.account.remove";
@@ -84,10 +85,16 @@ function refused(error) {
   reportError(WHERE, text);
 }
 
-// The command of the save: runs the rules of agents.definition.define or agents.definition.change, then closes the dialog with the
-// identifier of the definition.
+// The command agents.definition.define or agents.definition.change of this dialog: stores the definition and answers its caller with the
+// identifier; it leaves the dialog open, because a close ends every call that waits on the dialog (A56).
+async function storeDefinition(values) {
+  return editing ? changeDefinitionRecord(api, values) : defineDefinitionRecord(api, values);
+}
+
+// The command agents.definition.save, which the save button runs: stores the definition, then ends the dialog explicitly with the
+// identifier, which the opener of the dialog receives.
 async function saveDefinition(values) {
-  const result = await (editing ? changeDefinitionRecord(api, values) : defineDefinitionRecord(api, values));
+  const result = await storeDefinition(values);
   await bridge.runtime.dialog.close(result);
   return result;
 }
@@ -203,7 +210,8 @@ async function startForm() {
   });
 
   await Promise.all([
-    exposure.command(save, saveDefinition), bridge.commands.register(save, saveDefinition),
+    exposure.command(save, storeDefinition), bridge.commands.register(save, storeDefinition),
+    exposure.command(SAVE, saveDefinition), bridge.commands.register(SAVE, saveDefinition),
     exposure.status(LOGINS, () => ({ accounts: logins }), (watcher) => { loginWatchers.add(watcher); return () => loginWatchers.delete(watcher); }),
     exposure.command(ACCOUNT_DEFINE, addAccount), bridge.commands.register(ACCOUNT_DEFINE, addAccount),
     exposure.command(ACCOUNT_REMOVE, removeAccount), bridge.commands.register(ACCOUNT_REMOVE, removeAccount),
@@ -222,8 +230,8 @@ async function startForm() {
     exposure.element("agents.definition-dialog.save", saveButton),
     // Each field gives one parameter of the save command, which the save button runs.
     ...[[nameField, "name"], [accountField, "account"], [cwdField, "cwd"], [textField, "text"], [koField, "ko"], [filesField, "files"]]
-      .map(([field, parameter]) => exposure.mark(field, save, null, parameter)),
-    exposure.bind(saveButton, save, () => definitionParams({
+      .map(([field, parameter]) => exposure.mark(field, SAVE, null, parameter)),
+    exposure.bind(saveButton, SAVE, () => definitionParams({
       group, id, name: nameField.value, account: accountField.value, cwd: cwdField.value, text: textField.value, ko: koField.value, files: filesField.value,
     }), { failed: refused }),
     exposure.element("agents.definition-dialog.login", loginButton),

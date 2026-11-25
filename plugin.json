@@ -103,7 +103,7 @@
       { "name": "agents.definitions.leader", "description": "The icon of a definition row of the definitions tree, the star on the row of the leader of its group; a press runs agents.group.leader with the group and the identifier of the row.", "many": true },
       { "name": "agents.definitions.add-definition", "description": "The + at the right end of a group row of the definitions tree that opens the dialog that adds a definition to the group.", "many": true },
       { "name": "agents.group-dialog.name", "description": "The group name field of the group dialog; Enter adds the group." },
-      { "name": "agents.group-dialog.add", "description": "The add button of the group dialog that runs agents.group.create with the name field." },
+      { "name": "agents.group-dialog.add", "description": "The add button of the group dialog that runs agents.group.add with the name field." },
       { "name": "agents.group-dialog.cancel", "description": "The cancel button of the group dialog that closes it without a change." },
       { "name": "agents.definition-dialog.name", "description": "The name field of the definition dialog." },
       { "name": "agents.definition-dialog.account", "description": "The account select of the definition dialog, which lists the accounts of the project." },
@@ -111,7 +111,7 @@
       { "name": "agents.definition-dialog.text", "description": "The role text field of the definition dialog." },
       { "name": "agents.definition-dialog.ko", "description": "The Korean role text field of the definition dialog." },
       { "name": "agents.definition-dialog.files", "description": "The role files field of the definition dialog: absolute paths, one per line." },
-      { "name": "agents.definition-dialog.save", "description": "The save button of the definition dialog that defines a new definition or changes the stored one." },
+      { "name": "agents.definition-dialog.save", "description": "The save button of the definition dialog that runs agents.definition.save, which defines a new definition or changes the stored one and closes the dialog." },
       { "name": "agents.definition-dialog.cancel", "description": "The cancel button of the definition dialog that closes it without a change." },
       { "name": "agents.definition-dialog.login", "description": "The login button under the account select of the definition dialog, enabled while the selected account has no login in its home; it runs agents.account.login with the selected account, and is hidden while the login runs." },
       { "name": "agents.definition-dialog.login-cancel", "description": "The button 로그인 취소 that stands in place of the login button while the login runs and runs agents.account.login.cancel." },
@@ -198,6 +198,18 @@
         "description": "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
         "params": { "type": "object", "properties": {} },
         "result": { "type": "null" }
+      },
+      {
+        "name": "agents.definition.save",
+        "description": "Runs agents.definition.define, or agents.definition.change for a dialog of a stored definition, then closes the definition dialog with the identifier, which its opener receives. The save button of the dialog runs it; the close ends the call.",
+        "params": { "type": "object", "properties": { "group": { "type": "string" }, "id": { "type": "string" }, "name": { "type": "string" }, "account": { "type": "string" }, "cwd": { "type": "string" }, "text": { "type": "string" }, "ko": { "type": "string" }, "files": { "type": "string" } }, "required": ["group", "id", "name", "account", "cwd", "text", "ko", "files"] },
+        "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
+      },
+      {
+        "name": "agents.group.add",
+        "description": "Runs agents.group.create with the name, then closes the group dialog with the identifier, which its opener receives. Enter in the name field and the add button of the dialog run it; the close ends the call.",
+        "params": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] },
+        "result": { "type": "object", "properties": { "id": { "type": "string" } }, "required": ["id"] }
       },
       {
         "name": "agents.dialog.cancel",

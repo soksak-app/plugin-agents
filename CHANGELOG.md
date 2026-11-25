@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A56: `agents.definition.define`, `agents.definition.change` and `agents.group.create` answer their caller, and the dialogs close through `agents.definition.save` and `agents.group.add`.
 - A54: Each group has one leader, stored as `leader` in the group record of format 2; a press on the icon of a definition row runs `agents.group.leader`, and the row of the leader shows a star.
 - A53: The version is 0.0.9, so the release run publishes A52.
 - A52: The definitions section is named `혼` (souls), and the titles of the definition dialog and the definitions page are `혼`.
