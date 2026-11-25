@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A48: The pages `definitions.html`, `running.html`, `group-dialog.html` and `definition-dialog.html` take the text, line and error colors from the theme tokens `--fg`, `--edge` and `--fail` instead of a palette of the system color scheme, so a dark window draws them light on its dark card.
 - A47: The version is 0.0.6 and requires core 0.0.54.
 - A40, A40-1: `agents.account.login {id}` runs the login inside the definition dialog and opens no tab: the program `claude-login` or `codex-login` (`bin/login.mjs`) runs `claude auth login` or `codex login` in the home of the account and hands the sign-in address to the dialog with `sok agents.definition-dialog.sign-in`, claude through `BROWSER` (`bin/login-page.mjs`) and codex through its output; the dialog shows the sign-in page in its document region `login`, which core 0.0.54 gives a dialog, replaces the login button with 로그인 취소 (`agents.account.login.cancel`) and publishes `agents.definition-dialog.login-run`. After a claude login the program `home-settings` copies the settings of the person into the home without the keys of authentication and the secret variables and replaces only the keys that the person changed, so a member does not ask again for the warning of the mode that bypasses permissions. Red: 13 tests failed on the earlier code; Green: `node --test test/` passes 120 of 120. A debug window with core F1163 and F1164 showed the sign-in page of `claude auth login` in the dialog.
 - A38: The version is 0.0.5 with core 0.0.53.
