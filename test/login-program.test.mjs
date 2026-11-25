@@ -28,7 +28,7 @@ const run = (args, env) => new Promise((resolve) => {
   execFile(PROGRAM, args, { env }, (error, stdout, stderr) => resolve({ code: error?.code ?? 0, stdout, stderr }));
 });
 const sokCalls = (root) => readFileSync(join(root, "sok.log"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
-const PAGE = ["agents.definition-dialog.sign-in", "--surface", "dialog/agents/definition", "--url", ADDRESS];
+const PAGE = ["agents.settings.sign-in", "--surface", "settings/agents", "--url", ADDRESS];
 
 test("the login of claude runs claude auth login in the home and hands the address that claude gives BROWSER to the dialog", async (t) => {
   const { root, folder, env } = setup(t, "claude",

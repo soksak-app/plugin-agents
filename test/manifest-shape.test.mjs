@@ -11,7 +11,7 @@ const manifest = JSON.parse(read("plugin.json"));
 const pkg = JSON.parse(read("package.json"));
 
 // The members that the manifest of this plugin declares. A member that core lists later is added here with its test.
-const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "settings", "extends", "data", "programs", "exposes"];
+const DECLARED_MEMBERS = ["id", "name", "description", "sections", "dialogs", "settingsView", "settings", "extends", "data", "programs", "exposes"];
 
 test("plugin.json declares only the members of this skeleton", () => {
   assert.deepEqual(Object.keys(manifest).sort(), [...DECLARED_MEMBERS].sort());
@@ -63,16 +63,32 @@ test("each section page of plugin.json exists, begins with a doctype and holds n
 });
 
 // The dialogs of the definitions section (A28, A31): each dialog is a page of the release, which the view opens with runtime.dialog.open.
-// The definition dialog shows the sign-in page of a login in its document region login (docs/spec/definitions.md#account-homes).
-test("plugin.json declares the dialogs group and definition as dialog pages of the release, the definition dialog with the region login", () => {
+// No dialog runs a login, so no dialog declares a region (A26-3, docs/spec/definitions.md#settings-view).
+test("plugin.json declares the dialogs group and definition as dialog pages of the release, without regions", () => {
   assert.deepEqual(manifest.dialogs, {
     group: { page: "ui/group-dialog.html" },
-    definition: { page: "ui/definition-dialog.html", regions: [{ name: "login", kind: "document", input: "native" }] },
+    definition: { page: "ui/definition-dialog.html" },
   });
   for (const dialog of Object.values(manifest.dialogs)) {
     assert.ok(exists(dialog.page), `${dialog.page} does not exist`);
     assert.match(read(dialog.page), /^<!doctype html>/i, `${dialog.page} has no doctype at its start`);
   }
+});
+
+// The settings view of the plugin (A26-3, docs/spec/definitions.md#settings-view): the plugin page of the settings window shows its page,
+// which lists the accounts and runs their logins, with the sign-in page in its document region login.
+test("plugin.json declares the settings view ui/settings.html with the region login", () => {
+  assert.deepEqual(manifest.settingsView, { page: "ui/settings.html", regions: [{ name: "login", kind: "document", input: "native" }] });
+  assert.match(read(manifest.settingsView.page), /^<!doctype html>/i, "the settings view page has no doctype at its start");
+});
+
+// The elements of the settings view, and none of the login or the new account row in the definition dialog (A26-3).
+test("plugin.json declares the elements of the settings view and no login element of the definition dialog", () => {
+  const names = manifest.exposes.element.map((entry) => entry.name);
+  for (const name of ["agents.settings.login", "agents.settings.login-cancel", "agents.settings.login-page", "agents.settings.account-id", "agents.settings.account-cli", "agents.settings.account-add"]) {
+    assert.ok(names.includes(name), `${name} is not declared`);
+  }
+  assert.deepEqual(names.filter((name) => /^agents\.definition-dialog\.(login|account-)/.test(name)), []);
 });
 
 test("plugin.json declares no surface, host page, state module or contribution yet", () => {
@@ -129,12 +145,12 @@ test("plugin.json declares the commands agents.account.define, agents.account.re
   assert.deepEqual(commands, [
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Runs the login of the account inside the definition dialog: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the dialog, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
-    {"name": "agents.account.login.cancel", "description": "Ends the open login of the definition dialog; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
+    {"name": "agents.account.login", "description": "Runs the login of the account inside the settings view of the plugin: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the settings view, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
+    {"name": "agents.account.login.cancel", "description": "Ends the open login of the settings view; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
   ]);
-  // The login program hands the sign-in address to the dialog with this command, which loads it in the region login.
-  assert.deepEqual(manifest.exposes.commands.find((command) => command.name === "agents.definition-dialog.sign-in"),
-    {"name": "agents.definition-dialog.sign-in", "description": "Shows the sign-in address of the open login in the region of the definition dialog. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}});
+  // The login program hands the sign-in address to the settings view with this command, which loads it in the region login.
+  assert.deepEqual(manifest.exposes.commands.find((command) => command.name === "agents.settings.sign-in"),
+    {"name": "agents.settings.sign-in", "description": "Shows the sign-in address of the open login in the region of the settings view. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}});
 });
 
 // The command that the definitions section runs to create an empty group (A4). Its parameters are the name only; the
@@ -189,9 +205,9 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
     },
     {"name": "agents.account.define", "description": "Adds the agent account with the identifier, or replaces the account with the same identifier. args holds one argument per entry and env the names of the environment variables that the program receives. An account of claude or codex gets the home folder accounts/<id> of the data folder of the plugin, which is created with mode 0700 before the account is stored, so every project that names the identifier shares its login.", "params": {"type": "object", "properties": {"id": {"type": "string"}, "cli": {"type": "string"}, "args": {"type": "array", "items": {"type": "string"}}, "env": {"type": "array", "items": {"type": "string"}}}, "required": ["id", "cli", "args", "env"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
     {"name": "agents.account.remove", "description": "Removes the agent account with the identifier from the project and keeps its home folder, which another project may name. An account that a definition names is refused.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "null"}},
-    {"name": "agents.account.login", "description": "Runs the login of the account inside the definition dialog: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the dialog, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
-    {"name": "agents.account.login.cancel", "description": "Ends the open login of the definition dialog; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
-    {"name": "agents.definition-dialog.sign-in", "description": "Shows the sign-in address of the open login in the region of the definition dialog. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}},
+    {"name": "agents.account.login", "description": "Runs the login of the account inside the settings view of the plugin: runs claude auth login or codex login in the home folder of the account, shows the sign-in page in the settings view, and answers when the login ends, after the settings of the person are copied into the home and the login is read again. Opens no tab. Refuses an account without a home and a login that ends with a status other than 0.", "params": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}, "result": {"type": "object", "properties": {"id": {"type": "string"}, "login": {"type": ["boolean", "null"]}}, "required": ["id", "login"]}},
+    {"name": "agents.account.login.cancel", "description": "Ends the open login of the settings view; the login command then ends with cancelled. Without an open login it changes nothing.", "params": {"type": "object", "properties": {}}, "result": {"type": "null"}},
+    {"name": "agents.settings.sign-in", "description": "Shows the sign-in address of the open login in the region of the settings view. The login program runs it; an address that is not https or a call without an open login is refused.", "params": {"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]}, "result": {"type": "null"}},
     {
       name: "agents.group.open",
       description: "Opens the group dialog of the window, whose add button runs agents.group.create with the name of the group.",
@@ -241,8 +257,8 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  // Core 0.0.54 gives a dialog its document regions (core F1163), in which the definition dialog shows the sign-in page.
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.54" });
+  // Core 0.0.59 reads the settings view of a plugin (core F1128), in which the plugin shows the accounts and their sign-in page.
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.59" });
   assert.deepEqual(pkg.files, ["plugin.json", "ui", "bin"]);
   // The pack keeps the executable mode only of the files that bin names, and the host runs each program file as an executable.
   assert.deepEqual(pkg.bin, { "sok-agents-login": "bin/login.mjs", "sok-agents-login-page": "bin/login-page.mjs", "sok-agents-home-settings": "bin/home-settings.mjs" });
@@ -250,9 +266,10 @@ test("package.json declares the core range of the plugin and the files of its re
 });
 
 // The status agents.definitions (A13) is removed: the room reads the stored definitions and accounts (F1075), so no status is declared.
-test("plugin.json declares the statuses agents.definition-dialog.accounts with the login of each account and agents.definition-dialog.login-run with the open login", () => {
-  assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts", "agents.definition-dialog.login-run"]);
+test("plugin.json declares the statuses agents.definition-dialog.accounts and agents.settings.accounts with the login of each account and agents.settings.login-run with the open login", () => {
+  assert.deepEqual(manifest.exposes.status.map((entry) => entry.name), ["agents.definition-dialog.accounts", "agents.settings.accounts", "agents.settings.login-run"]);
   assert.deepEqual(manifest.exposes.status[0].schema.properties.accounts.items.required, ["id", "cli", "login", "expires"]);
+  assert.deepEqual(manifest.exposes.status[1].schema.properties.accounts.items.required, ["id", "cli", "login", "expires"]);
 });
 
 // The programs of the account homes (docs/spec/definitions.md#account-homes): each argument is literal or matches a pattern that keeps it

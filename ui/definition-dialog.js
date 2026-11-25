@@ -2,27 +2,20 @@
 // values name the group and an identifier. Without an identifier the save defines a new definition (agents.definition.define); with one,
 // the dialog shows the stored definition and its role from core.roles, and the save changes it (agents.definition.change). The save
 // button runs agents.definition.save, which stores and then closes the dialog. A refusal shows its text in the dialog and is written to the application log. The account select shows the login of each
-// account, the login button runs the login of the selected account inside the dialog, whose sign-in page the region login shows, and the
-// new account row adds an account (A36, A40, docs/spec/definitions.md#controls-and-dialogs).
+// account; the settings view of the plugin runs the logins and adds accounts (A26-3, docs/spec/definitions.md#controls-and-dialogs).
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
 import { parseAccounts } from "./accounts.js";
 import { parseDefinitions } from "./definition-records.js";
 import { definitionFormValues, definitionParams } from "./dialog-rules.js";
-import { accountLogins, changeDefinitionRecord, defineAccountRecord, defineDefinitionRecord, loginAccount, newDefinitionId, removeAccountRecord } from "./definition-commands.js";
+import { accountLogins, changeDefinitionRecord, defineDefinitionRecord, newDefinitionId } from "./definition-commands.js";
 
 const DEFINE = "agents.definition.define";
 const CHANGE = "agents.definition.change";
 const SAVE = "agents.definition.save";
 const CANCEL = "agents.dialog.cancel";
-const ACCOUNT_DEFINE = "agents.account.define";
-const ACCOUNT_REMOVE = "agents.account.remove";
-const ACCOUNT_LOGIN = "agents.account.login";
-const LOGIN_CANCEL = "agents.account.login.cancel";
-const SIGN_IN = "agents.definition-dialog.sign-in";
 const LOGINS = "agents.definition-dialog.accounts";
-const LOGIN_RUN = "agents.definition-dialog.login-run";
 const ACCOUNTS = "accounts";
 const DEFINITIONS = "definitions";
 const WHERE = "agents.definition-dialog";
@@ -67,13 +60,6 @@ const cwdField = document.getElementById("cwd");
 const textField = document.getElementById("text");
 const koField = document.getElementById("ko");
 const filesField = document.getElementById("files");
-const loginButton = document.getElementById("login");
-const loginCancelButton = document.getElementById("login-cancel");
-const loginPage = document.getElementById("login-page");
-const card = document.querySelector(".card");
-const accountIdField = document.getElementById("account-id");
-const accountCliField = document.getElementById("account-cli");
-const accountAddButton = document.getElementById("account-add");
 const saveButton = document.getElementById("save");
 const cancelButton = document.getElementById("cancel");
 const message = document.getElementById("error");
@@ -109,74 +95,7 @@ async function showAccounts(selected) {
   logins = await accountLogins(api, accounts);
   accountField.replaceChildren(...logins.map((row) => new Option(row.login === false ? `${row.id} (로그인 필요)` : row.id, row.id)));
   if (selected !== undefined) accountField.value = selected;
-  showLogin();
   for (const watcher of loginWatchers) watcher({ accounts: logins });
-}
-
-// The open login {id, url, page, controller}, or null. url is the sign-in address, null before the login program hands it over, and page
-// the last document state of the region login {url, title, loading, error}, null before the region reports one.
-let run = null;
-const runWatchers = new Set();
-const runValue = () => (run === null ? null : { id: run.id, url: run.url, page: run.page });
-
-// The login button is enabled while the selected account has no login in its home and no login runs; during a login the cancel button
-// stands in its place.
-function showLogin() {
-  loginButton.hidden = run !== null;
-  loginCancelButton.hidden = run === null;
-  loginButton.disabled = run !== null || logins.find((row) => row.id === accountField.value)?.login !== false;
-  for (const watcher of runWatchers) watcher(runValue());
-}
-
-// The command agents.account.define {id, cli, args, env}: adds the account and selects it.
-async function addAccount(values) {
-  const result = await defineAccountRecord(api, values);
-  await showAccounts(result.id);
-  accountIdField.value = "";
-  accountCliField.value = "";
-  return result;
-}
-
-// The command agents.account.remove {id}: removes the account from the project.
-async function removeAccount(values) {
-  const result = await removeAccountRecord(api, values);
-  await showAccounts();
-  return result;
-}
-
-// The command agents.account.login {id}: runs the login of the account in the dialog. The end of the run hides the sign-in page and reads
-// the login of the accounts again.
-async function login(values) {
-  if (run !== null) throw new Error(`the login of account ${run.id} is running`);
-  run = { id: values.id, url: null, page: null, controller: new AbortController() };
-  showLogin();
-  try {
-    return await loginAccount(api, values, { signal: run.controller.signal });
-  } finally {
-    run = null;
-    loginPage.hidden = true;
-    card.classList.remove("signing");
-    showLogin();
-    await showAccounts(accountField.value);
-  }
-}
-
-// The command agents.account.login.cancel: ends the open login, whose command then ends with cancelled.
-async function cancelLogin() {
-  run?.controller.abort();
-  return null;
-}
-
-// The command agents.definition-dialog.sign-in {url}: the login program hands the sign-in address, which the region login loads.
-async function signIn({ url }) {
-  if (run === null) throw new Error("no login of the definition dialog is open");
-  if (typeof url !== "string" || !url.startsWith("https://")) throw new Error(`the sign-in address ${url} is not https`);
-  run.url = url;
-  card.classList.add("signing");
-  loginPage.hidden = false;
-  await signInRegion.load(url);
-  showLogin();
-  return null;
 }
 
 // The command agents.dialog.cancel: closes the dialog without a change.
@@ -195,30 +114,14 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") exposure.run(CANCEL, {}).catch(refused);
 });
 
-// The region login shows the sign-in page of a login (core F1163: a dialog declares its regions).
-let signInRegion;
-
-// Reads the parameters, creates the composition, registers the commands, statuses and elements of the form and fills the fields.
+// Reads the parameters, registers the commands, statuses and elements of the form and fills the fields.
 async function startForm() {
   readParams();
-  const composition = await bridge.composition.create({ regions: { login: loginPage }, overlays: {} });
-  signInRegion = composition.region("login");
-  signInRegion.onState((state) => {
-    if (run === null) return;
-    run.page = { url: state.url, title: state.title, loading: state.loading, error: state.error };
-    showLogin();
-  });
 
   await Promise.all([
     exposure.command(save, storeDefinition), bridge.commands.register(save, storeDefinition),
     exposure.command(SAVE, saveDefinition), bridge.commands.register(SAVE, saveDefinition),
     exposure.status(LOGINS, () => ({ accounts: logins }), (watcher) => { loginWatchers.add(watcher); return () => loginWatchers.delete(watcher); }),
-    exposure.command(ACCOUNT_DEFINE, addAccount), bridge.commands.register(ACCOUNT_DEFINE, addAccount),
-    exposure.command(ACCOUNT_REMOVE, removeAccount), bridge.commands.register(ACCOUNT_REMOVE, removeAccount),
-    exposure.command(ACCOUNT_LOGIN, login), bridge.commands.register(ACCOUNT_LOGIN, login),
-    exposure.command(LOGIN_CANCEL, cancelLogin), bridge.commands.register(LOGIN_CANCEL, cancelLogin),
-    exposure.command(SIGN_IN, signIn), bridge.commands.register(SIGN_IN, signIn),
-    exposure.status(LOGIN_RUN, runValue, (watcher) => { runWatchers.add(watcher); return () => runWatchers.delete(watcher); }),
   ]);
   await Promise.all([
     exposure.element("agents.definition-dialog.name", nameField),
@@ -234,19 +137,7 @@ async function startForm() {
     exposure.bind(saveButton, SAVE, () => definitionParams({
       group, id, name: nameField.value, account: accountField.value, cwd: cwdField.value, text: textField.value, ko: koField.value, files: filesField.value,
     }), { failed: refused }),
-    exposure.element("agents.definition-dialog.login", loginButton),
-    exposure.element("agents.definition-dialog.account-id", accountIdField),
-    exposure.element("agents.definition-dialog.account-cli", accountCliField),
-    exposure.element("agents.definition-dialog.account-add", accountAddButton),
-    exposure.element("agents.definition-dialog.login-cancel", loginCancelButton),
-    exposure.element("agents.definition-dialog.login-page", loginPage),
-    exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value }), { failed: refused }),
-    exposure.bind(loginCancelButton, LOGIN_CANCEL, {}, { failed: refused }),
-    exposure.mark(accountIdField, ACCOUNT_DEFINE, null, "id"),
-    exposure.mark(accountCliField, ACCOUNT_DEFINE, null, "cli"),
-    exposure.bind(accountAddButton, ACCOUNT_DEFINE, () => ({ id: accountIdField.value.trim(), cli: accountCliField.value.trim(), args: [], env: [] }), { failed: refused }),
   ]);
-  accountField.addEventListener("change", showLogin);
 
   // The accounts fill the account field. A stored definition fills every field from its record and its role in core.roles.
   await showAccounts();
@@ -260,7 +151,6 @@ async function startForm() {
     const values = definitionFormValues(records[id], roles);
     nameField.value = values.name;
     accountField.value = values.account;
-    showLogin();
     cwdField.value = values.cwd;
     textField.value = values.text;
     koField.value = values.ko;

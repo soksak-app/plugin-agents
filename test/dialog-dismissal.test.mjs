@@ -14,7 +14,7 @@ const at = (source, text, name) => {
 
 // Each page with the start of its guarded steps and the steps that can fail, which run only after that start.
 for (const [name, guard, steps] of [
-  ["definition-dialog.js", "try {\n  await startForm();", ["  readParams();\n", "await bridge.composition.create("]],
+  ["definition-dialog.js", "try {\n  await startForm();", ["  readParams();\n", "await showAccounts();"]],
   ["group-dialog.js", "try {\n  const groups = parseGroups((await bridge.runtime.data.get(", []],
 ]) {
   test(`${name} registers its cancel and Escape before every start step that can fail`, { timeout: 1000 }, () => {

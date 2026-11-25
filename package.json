@@ -11,7 +11,7 @@
     "url": "git+https://github.com/soksak-app/plugin-agents.git"
   },
   "engines": {
-    "soksak": "^0.0.54"
+    "soksak": "^0.0.59"
   },
   "bin": {
     "sok-agents-login": "bin/login.mjs",

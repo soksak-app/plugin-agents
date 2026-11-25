@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 // The program of BROWSER during a login (docs/spec/definitions.md#account-homes): hands the sign-in address, its only argument, to the
-// definition dialog with sok, which connects to the application of SOKSAK_CONFIG_DIR. The login program also imports showLoginPage.
+// settings view of the plugin with sok, which connects to the application of SOKSAK_CONFIG_DIR. The login program also imports showLoginPage.
 import { execFile } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-// Runs agents.definition-dialog.login-page on the definition dialog and resolves when sok ends with status 0.
+// Runs agents.settings.sign-in on the settings view of the plugin and resolves when sok ends with status 0.
 export function showLoginPage(address) {
   return new Promise((resolve, reject) => {
-    execFile("sok", ["agents.definition-dialog.sign-in", "--surface", "dialog/agents/definition", "--url", address], (error, _stdout, stderr) => {
-      if (error) reject(new Error(`sok agents.definition-dialog.sign-in ended with ${error.code ?? error.message}: ${stderr.trim()}`));
+    execFile("sok", ["agents.settings.sign-in", "--surface", "settings/agents", "--url", address], (error, _stdout, stderr) => {
+      if (error) reject(new Error(`sok agents.settings.sign-in ended with ${error.code ?? error.message}: ${stderr.trim()}`));
       else resolve();
     });
   });

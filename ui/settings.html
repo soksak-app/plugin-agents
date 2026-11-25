@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>계정</title>
+  <style>
+    /* The view bridge sets the theme of the window on the root: --card, --fg, --muted, --edge and --fail, with its color scheme. */
+    :root { --text: var(--fg); --line: var(--edge); --error: var(--fail); }
+    html, body { height: 100%; }
+    body { margin: 0; background: transparent; color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+    main { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
+    h1 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+    .none { margin: 0 0 10px; color: var(--muted); }
+    .accounts { margin: 0 0 12px; padding: 0; list-style: none; }
+    .accounts li { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .accounts .id { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .accounts .cli, .accounts .login { color: var(--muted); }
+    .new { color: var(--muted); margin: 0 0 4px; }
+    .row { display: flex; gap: 6px; align-items: center; margin: 0 0 10px; }
+    input { box-sizing: border-box; min-width: 0; flex: 1 1 auto; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); font: inherit; }
+    button { flex: none; padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    p { margin: 0 0 8px; min-height: 1.4em; color: var(--error); }
+    #login-page { flex: 1 1 auto; min-height: 240px; margin: 0 0 10px; border: 1px solid var(--line); border-radius: 4px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>계정</h1>
+    <div id="no-project" class="none" hidden>프로젝트를 연 창에서 계정을 관리해요.</div>
+    <ul id="accounts" class="accounts"></ul>
+    <div id="login-page" hidden></div>
+    <div id="new-account">
+      <div class="new">새 계정</div>
+      <div class="row"><input id="account-id" type="text" placeholder="식별자" autocomplete="off"><input id="account-cli" type="text" placeholder="cli (claude, codex)" autocomplete="off"><button id="account-add" type="button">추가</button></div>
+    </div>
+    <p id="error" role="alert"></p>
+  </main>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

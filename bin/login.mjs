@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The program login (docs/spec/definitions.md#account-homes): runs the documented login command of claude or codex in the home of an
-// account and hands the sign-in address to the definition dialog with sok, so the dialog shows the sign-in page. claude gives the address
+// account and hands the sign-in address to the settings view with sok, so the settings view shows the sign-in page. claude gives the address
 // to the program of BROWSER, which is login-page.mjs; codex opens no program of BROWSER on macOS and prints the address, which is read
 // from the first line of its output that holds an https address. The program ends with the status of the cli.
 import { spawn } from "node:child_process";
@@ -23,7 +23,7 @@ let failure = null;
 // The delivery of the address, which the end of the program waits for, so a cli that ends at once does not end the delivery.
 let delivery = Promise.resolve();
 
-// Reads the output of codex line by line until the first https address, which it hands to the dialog once.
+// Reads the output of codex line by line until the first https address, which it hands to the settings view once.
 function scan(text) {
   if (shown) return;
   pending += text;
