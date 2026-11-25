@@ -1,6 +1,9 @@
 # Features
 
 Items use the states `[ ]` waiting, `[~]` active, `[o]` complete, `[!]` held and `[-]` closed.
+- [~] A57 — P0, follows A26: Release the plugin with A26 as 0.0.11. Remains: A57-2.
+  - [o] A57-1 — Declare the version 0.0.11, so the release run publishes A26.
+  - [ ] A57-2 — Push the candidate and confirm that the release run concludes success.
 - [o] A56 — P0: A command that stores a record from a dialog answers its caller. Input: `sok agents.definition.define --surface dialog/agents/definition` stored the definition and failed with `surface-closed`, because the handler closed the dialog before its reply and the close ends every call that waits on the dialog; `agents.group.create` of the group dialog did the same. Expected: `agents.definition.define`, `agents.definition.change` and `agents.group.create` store and answer with the identifier and leave the dialog open, and the save button and the add button and Enter run `agents.definition.save` and `agents.group.add`, which store and then close the dialog explicitly with the identifier. Red: `test/dialog-replies.test.mjs` failed both cases on the earlier dialogs. Green: `pnpm test` passes 135 of 135.
 - [o] A55 — P0, follows A54: Release the plugin with A54 and A56 as 0.0.10, and edit the stored groups of each application that installs it into format 2 with the leader of each group, the first member of a group with members, after a backup of `projects.json`; the edit is idempotent, so a group of format 2 is left unchanged.0.10.
   - [o] A55-1 — Declare the version 0.0.10, so the release run publishes A54 and A56.

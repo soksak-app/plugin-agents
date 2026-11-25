@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A57-1: The version is 0.0.11, which releases A26.
 - A26-3: The settings view `ui/settings.html` lists the accounts with their login, runs the login with the sign-in page in its region `login` and adds an account; the definition dialog runs no login and adds no account, and the plugin requires core 0.0.59.
 - A26-2: The accounts and their login are specified in the settings view of the plugin, and the definition dialog no longer runs a login or adds an account.
 - A55-1: The version is 0.0.10, which releases A54 and A56.
