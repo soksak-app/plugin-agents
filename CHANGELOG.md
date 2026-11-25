@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A51: The version is 0.0.8, so the release run publishes A50.
 - A50: The definition dialog registers its cancel button, Escape and `agents.dialog.cancel` before its other start steps, so a dialog whose start fails shows the refusal and still closes.
 - A49: The version is 0.0.7, so the release run publishes A48.
 - A48: The pages `definitions.html`, `running.html`, `group-dialog.html` and `definition-dialog.html` take the text, line and error colors from the theme tokens `--fg`, `--edge` and `--fail` instead of a palette of the system color scheme, so a dark window draws them light on its dark card.

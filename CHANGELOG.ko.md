@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A51: version은 0.0.8이며 release run이 A50을 게시한다.
 - A50: definition dialog가 다른 시작 단계보다 먼저 취소 버튼, Escape, `agents.dialog.cancel`을 등록하므로, 시작이 실패한 dialog도 거부를 보이고 닫힌다.
 - A49: version은 0.0.7이며 release run이 A48를 게시한다.
 - A48: `definitions.html`, `running.html`, `group-dialog.html`, `definition-dialog.html` page가 system color scheme의 palette 대신 theme token `--fg`, `--edge`, `--fail`에서 글자, 선, 오류 색을 써서, dark window의 어두운 card 위에 밝게 그려진다.
