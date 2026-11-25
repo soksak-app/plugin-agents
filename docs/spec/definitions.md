@@ -45,7 +45,7 @@ The clubhouse room reads both keys through `runtime.data.get {key, plugin: "agen
 
 ## Controls and dialogs
 
-The definitions section lists the groups with their definitions. Its controls run declared commands, and the forms that add a group or a definition, or change one, are dialogs of the window (`dialogs` of `plugin.json`, [dialogs](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#dialogs)).
+The definitions section, named `혼` (souls) in the sidebar, lists the groups with their definitions. Its controls run declared commands, and the forms that add a group or a definition, or change one, are dialogs of the window (`dialogs` of `plugin.json`, [dialogs](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#dialogs)).
 
 - The section declares the action `그룹 추가` with the icon `plus`, which core draws at the right end of the section header; it runs `agents.group.open`, which opens the dialog `group`. While there is no group the section shows the text `그룹이 없어요.` at its top.
 - The group dialog has a name field, which holds `default` while no stored group is named `default` and is empty otherwise, and an add button. Enter in the field and the add button run `agents.group.create {name}`. A name that a group already has is refused, and the dialog shows the refusal and stores nothing. A stored group is added and the dialog closes with the identifier of the group.

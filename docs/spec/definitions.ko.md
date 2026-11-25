@@ -45,7 +45,7 @@ Clubhouse room은 두 key를 `runtime.data.get {key, plugin: "agents"}`(core F10
 
 ## 컨트롤과 대화상자
 
-정의 섹션은 그룹과 그 정의를 나열한다. 이 컨트롤들은 선언된 command를 실행하며, 그룹이나 정의를 추가하거나 바꾸는 양식은 window의 대화상자다(`plugin.json`의 `dialogs`, [dialogs](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#dialogs)).
+사이드바에서 `혼`(souls)이라는 이름을 가진 정의 섹션은 그룹과 그 정의를 나열한다. 이 컨트롤들은 선언된 command를 실행하며, 그룹이나 정의를 추가하거나 바꾸는 양식은 window의 대화상자다(`plugin.json`의 `dialogs`, [dialogs](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#dialogs)).
 
 - 섹션은 아이콘 `plus`의 action `그룹 추가`를 선언하고, core는 그것을 섹션 머리 오른쪽 끝에 그린다. 이 action은 `agents.group.open`을 실행하며, 이 command는 대화상자 `group`을 연다. 그룹이 없는 동안 섹션은 맨 위에 `그룹이 없어요.`를 보인다.
 - 그룹 대화상자에는 이름 필드와 추가 버튼이 있다. 이름 필드는 저장된 그룹 중에 `default`라는 이름의 그룹이 없으면 `default`를, 있으면 빈 값을 보인다. 이름 필드의 Enter와 추가 버튼은 `agents.group.create {name}`을 실행한다. 그룹이 이미 가진 이름은 거부되며, 대화상자는 거부 문구를 보이고 아무것도 저장하지 않는다. 저장된 그룹이 추가되면 대화상자는 그룹의 식별자와 함께 닫힌다.

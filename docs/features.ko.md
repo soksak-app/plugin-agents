@@ -56,6 +56,7 @@
 - [o] A49 — P0: A48를 0.0.7로 release한다. package는 0.0.7를 선언하고 release run이 the theme colors of A48를 게시한다.
 - [o] A50 — P0: 시작 단계가 실패해도 definition dialog가 닫힌다. Input: view call `composition.declaration`이 region `login`을 거부하는 application(core F1167)에서 연 definition dialog. Behavior: page가 `agents.dialog.cancel`과 Escape를 등록하기 전에 composition에서 멈춰 dialog가 window를 덮고 닫을 수단이 없었다. Expected: page는 parameter 읽기, composition, 저장된 값 읽기보다 먼저 취소 버튼, Escape, `agents.dialog.cancel`을 등록하고, 실패한 시작 단계를 거부로 보이며, 취소하면 닫힌다. Red: 이전 page에서 `test/dialog-dismissal.test.mjs`가 실패했다. Green: 통과한다.
 - [o] A51 — P0: A50을 0.0.8로 release한다. package는 0.0.8을 선언하고 release run이 시작에 실패한 definition dialog의 닫기를 게시한다.
+- [o] A52 — P1: 정의 섹션은 사이드바에서 `혼`(souls)이라는 이름을 갖고, definition dialog와 definitions page의 제목은 `혼`이다.
 - [ ] A41 — P1, A36 다음: 계정을 지울 때 home을 지우기 전에 그 home에서 CLI의 문서화된 logout 명령을 실행하고, logout이 실패하면 home을 남기고 오류를 보인다.
 - [ ] A42 — P1, A39 다음: 환경의 인증 변수가 우선해서 home의 login 방식이 그 home의 구독 login이 아니면, 다른 인증이 계정을 덮고 있다고 보인다. plugin은 그 변수를 지우거나 바꾸지 않는다.
 - [ ] A43 — P1, A39 다음: 계정 select는 읽을 수 없는 login(status program이 실패했거나 끝나지 않음)과 login 없음을 나누고, 계정을 고를 때, member가 시작할 때, login이 끝날 때 status를 읽는다.

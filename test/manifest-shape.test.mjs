@@ -34,7 +34,7 @@ test("plugin.json declares the running agents and the agent definitions as view 
     },
     {
       id: "agents.definitions",
-      name: "에이전트 정의",
+      name: "혼",
       composition: { kind: "view", page: "ui/definitions.html" },
       height: "fill",
       actions: [{ icon: "plus", label: "그룹 추가", command: "agents.group.open" }],
