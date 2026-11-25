@@ -1,9 +1,9 @@
 # 기능
 
 항목 상태는 `[ ]` 대기, `[~]` 진행, `[o]` 완료, `[!]` 보류, `[-]` 종료다.
-- [~] A57 — P0, A26에 이어서: A26과 함께 plugin을 0.0.11로 릴리즈한다. 남은 일: A57-2.
+- [o] A57 — P0, A26에 이어서: A26과 함께 plugin을 0.0.11로 릴리즈한다.
   - [o] A57-1 — 버전 0.0.11을 선언해서 release 실행이 A26을 게시한다.
-  - [ ] A57-2 — 후보를 push하고 release 실행이 success로 끝나는지 확인한다.
+  - [o] A57-2 — 후보를 push하고 release 실행이 success로 끝나는지 확인한다. Green: release 실행이 success로 끝났고 v0.0.11은 soksak-plugin-agents-0.0.11.tgz를 나열한다.
 - [o] A56 — P0: 대화상자에서 기록을 저장하는 command는 호출자에게 답한다. Input: `sok agents.definition.define --surface dialog/agents/definition`은 정의를 저장하고 `surface-closed`로 실패했다. handler가 답하기 전에 대화상자를 닫았고, 닫기는 대화상자를 기다리는 모든 호출을 끝내기 때문이다. 그룹 대화상자의 `agents.group.create`도 같았다. Expected: `agents.definition.define`, `agents.definition.change`, `agents.group.create`는 저장하고 식별자로 답하며 대화상자를 열어 둔다. 저장 버튼, 추가 버튼, Enter는 `agents.definition.save`와 `agents.group.add`를 실행하고, 이 command는 저장한 뒤 식별자와 함께 대화상자를 명시적으로 닫는다. Red: 이전 대화상자에서 `test/dialog-replies.test.mjs`의 두 경우가 실패했다. Green: `pnpm test`가 135개 중 135개 통과한다.
 - [o] A55 — P0, A54 다음: A54와 A56을 담은 plugin을 0.0.10으로 출시하고, 그것을 설치하는 각 애플리케이션의 저장된 group을 `projects.json` 백업 뒤 format 2로 고치며, member가 있는 group의 리더는 첫 member다. 고치기는 멱등이라 format 2의 group은 그대로 둔다. 남은 일: 0.0.10 설치를 기다리는 A55-2.
   - [o] A55-1 — version 0.0.10을 선언해 release run이 A54와 A56을 publish한다.
