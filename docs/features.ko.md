@@ -53,6 +53,7 @@
   - [!] A40-2 — 사람의 sign-in이 창 안의 login을 끝낸다. CLI가 0으로 끝나고 `home-settings`가 실행되며 계정 select가 login을 읽는다. 보류: sign-in은 사람의 계정과 비밀번호가 필요하고 어떤 check도 그것을 갖지 않는다. 원인: CLI의 OAuth sign-in은 사람의 자격 증명으로만 끝난다. 재시도 조건: 사람이 정의 창에서 sign-in할 때.
 - [o] A47 — P0: A40과 A40-1을 0.0.6으로 release한다. `engines.soksak`은 `^0.0.54`이다. dialog가 document region을 선언하는 첫 core release(core F1163)이고, 정의 창이 그것을 쓴다.
 - [o] A48 — P0: `definitions.html`, `running.html`, `group-dialog.html`, `definition-dialog.html` page가 window theme의 색을 쓴다. Input: system appearance가 light인 상태에서 dark theme인 window. Behavior: dialog의 제목, label, button이 theme의 어두운 card 위 어두운 글자였다. View bridge는 theme의 card를 설정하는데, page는 글자, 선, 오류 색을 system color scheme에서 골랐기 때문이다. Expected: page는 view bridge가 root에 설정하는 theme token인 `--fg`에서 글자, `--edge`에서 선, `--fail`에서 오류 색을 쓰고(core docs/spec/native-surfaces.md, Theme), 자기 palette를 고르지 않는다. Red: `test/page-theme.test.mjs`의 test 4개가 이전 page에서 실패했다. Green: 통과한다.
+- [o] A49 — P0: A48를 0.0.7로 release한다. package는 0.0.7를 선언하고 release run이 the theme colors of A48를 게시한다.
 - [ ] A41 — P1, A36 다음: 계정을 지울 때 home을 지우기 전에 그 home에서 CLI의 문서화된 logout 명령을 실행하고, logout이 실패하면 home을 남기고 오류를 보인다.
 - [ ] A42 — P1, A39 다음: 환경의 인증 변수가 우선해서 home의 login 방식이 그 home의 구독 login이 아니면, 다른 인증이 계정을 덮고 있다고 보인다. plugin은 그 변수를 지우거나 바꾸지 않는다.
 - [ ] A43 — P1, A39 다음: 계정 select는 읽을 수 없는 login(status program이 실패했거나 끝나지 않음)과 login 없음을 나누고, 계정을 고를 때, member가 시작할 때, login이 끝날 때 status를 읽는다.

@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A49: version은 0.0.7이며 release run이 A48를 게시한다.
 - A48: `definitions.html`, `running.html`, `group-dialog.html`, `definition-dialog.html` page가 system color scheme의 palette 대신 theme token `--fg`, `--edge`, `--fail`에서 글자, 선, 오류 색을 써서, dark window의 어두운 card 위에 밝게 그려진다.
 - A47: version은 0.0.6이고 core 0.0.54를 요구해요.
 - A40, A40-1: `agents.account.login {id}`가 정의 창 안에서 login을 실행하고 탭을 열지 않아요. program `claude-login`이나 `codex-login`(`bin/login.mjs`)이 계정 home에서 `claude auth login`이나 `codex login`을 실행하고, sign-in 주소를 `sok agents.definition-dialog.sign-in`으로 창에 넘겨요. claude는 `BROWSER`(`bin/login-page.mjs`)로, codex는 출력으로 넘겨요. 창은 core 0.0.54가 dialog에 주는 document region `login`에 sign-in page를 보이고, 로그인 버튼 자리에 로그인 취소(`agents.account.login.cancel`)를 두며 `agents.definition-dialog.login-run`을 게시해요. claude login 뒤에는 program `home-settings`가 사람의 설정을 인증 key와 비밀 variable 없이 home에 복사하고 사람이 바꾼 key만 바꿔서, member가 권한을 우회하는 mode의 경고를 다시 묻지 않아요. Red: 이전 코드에서 test 13개 실패. Green: `node --test test/`가 120개 중 120개 통과. core F1163과 F1164를 넣은 debug 창이 `claude auth login`의 sign-in page를 창 안에 보였어요.
