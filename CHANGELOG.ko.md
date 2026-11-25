@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A53: version은 0.0.9이며 release run이 A52를 게시한다.
 - A52: 정의 섹션의 이름은 `혼`(souls)이고, definition dialog와 definitions page의 제목은 `혼`이다.
 - A51: version은 0.0.8이며 release run이 A50을 게시한다.
 - A50: definition dialog가 다른 시작 단계보다 먼저 취소 버튼, Escape, `agents.dialog.cancel`을 등록하므로, 시작이 실패한 dialog도 거부를 보이고 닫힌다.

@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A53: The version is 0.0.9, so the release run publishes A52.
 - A52: The definitions section is named `혼` (souls), and the titles of the definition dialog and the definitions page are `혼`.
 - A51: The version is 0.0.8, so the release run publishes A50.
 - A50: The definition dialog registers its cancel button, Escape and `agents.dialog.cancel` before its other start steps, so a dialog whose start fails shows the refusal and still closes.
