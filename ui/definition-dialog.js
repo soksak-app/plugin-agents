@@ -38,16 +38,25 @@ for (const [where, text] of losses.splice(0)) reportError(where, text);
 
 const start = window.sokSurface;
 if (start === null || typeof start !== "object") throw new Error("the definition dialog has no start values: window.sokSurface is missing");
-const params = start.params;
-if (params === null || typeof params !== "object" || typeof params.group !== "string") {
-  throw new Error("the definition dialog has no group in its parameters");
+// The group, the identifier and the save command of the dialog, which readParams sets from the parameters of the start values.
+let group;
+let editing;
+let id;
+let save;
+
+// Reads the parameters of the start values. The identifier of a new definition is made once, so a refused save that is repeated names
+// the same identifier.
+function readParams() {
+  const params = start.params;
+  if (params === null || typeof params !== "object" || typeof params.group !== "string") {
+    throw new Error("the definition dialog has no group in its parameters");
+  }
+  if (params.id !== null && typeof params.id !== "string") throw new Error("the definition dialog id must be text or null");
+  group = params.group;
+  editing = params.id !== null;
+  id = editing ? params.id : newDefinitionId();
+  save = editing ? CHANGE : DEFINE;
 }
-if (params.id !== null && typeof params.id !== "string") throw new Error("the definition dialog id must be text or null");
-const group = params.group;
-const editing = params.id !== null;
-// The identifier of a new definition is made once, so a refused save that is repeated names the same identifier.
-const id = editing ? params.id : newDefinitionId();
-const save = editing ? CHANGE : DEFINE;
 
 const api = { data: bridge.runtime.data, calls: bridge.calls, settings: bridge.runtime.settings, program: bridge.runtime.program, dataFolder: start.dataFolder };
 const exposure = createExpose(exposurePort(bridge, WHERE, reportError), () => start.declarations);
@@ -169,61 +178,69 @@ async function cancel() {
   return null;
 }
 
-// The region login shows the sign-in page of a login (core F1163: a dialog declares its regions).
-const composition = await bridge.composition.create({ regions: { login: loginPage }, overlays: {} });
-const signInRegion = composition.region("login");
-signInRegion.onState((state) => {
-  if (run === null) return;
-  run.page = { url: state.url, title: state.title, loading: state.loading, error: state.error };
-  showLogin();
-});
-
+// The cancel button and Escape close the dialog before any other start step runs, so a dialog whose start fails still closes.
+await Promise.all([exposure.command(CANCEL, cancel), bridge.commands.register(CANCEL, cancel)]);
 await Promise.all([
-  exposure.command(save, saveDefinition), bridge.commands.register(save, saveDefinition),
-  exposure.command(CANCEL, cancel), bridge.commands.register(CANCEL, cancel),
-  exposure.status(LOGINS, () => ({ accounts: logins }), (watcher) => { loginWatchers.add(watcher); return () => loginWatchers.delete(watcher); }),
-  exposure.command(ACCOUNT_DEFINE, addAccount), bridge.commands.register(ACCOUNT_DEFINE, addAccount),
-  exposure.command(ACCOUNT_REMOVE, removeAccount), bridge.commands.register(ACCOUNT_REMOVE, removeAccount),
-  exposure.command(ACCOUNT_LOGIN, login), bridge.commands.register(ACCOUNT_LOGIN, login),
-  exposure.command(LOGIN_CANCEL, cancelLogin), bridge.commands.register(LOGIN_CANCEL, cancelLogin),
-  exposure.command(SIGN_IN, signIn), bridge.commands.register(SIGN_IN, signIn),
-  exposure.status(LOGIN_RUN, runValue, (watcher) => { runWatchers.add(watcher); return () => runWatchers.delete(watcher); }),
-]);
-await Promise.all([
-  exposure.element("agents.definition-dialog.name", nameField),
-  exposure.element("agents.definition-dialog.account", accountField),
-  exposure.element("agents.definition-dialog.cwd", cwdField),
-  exposure.element("agents.definition-dialog.text", textField),
-  exposure.element("agents.definition-dialog.ko", koField),
-  exposure.element("agents.definition-dialog.files", filesField),
-  exposure.element("agents.definition-dialog.save", saveButton),
   exposure.element("agents.definition-dialog.cancel", cancelButton),
-  // Each field gives one parameter of the save command, which the save button runs.
-  ...[[nameField, "name"], [accountField, "account"], [cwdField, "cwd"], [textField, "text"], [koField, "ko"], [filesField, "files"]]
-    .map(([field, parameter]) => exposure.mark(field, save, null, parameter)),
-  exposure.bind(saveButton, save, () => definitionParams({
-    group, id, name: nameField.value, account: accountField.value, cwd: cwdField.value, text: textField.value, ko: koField.value, files: filesField.value,
-  }), { failed: refused }),
   exposure.bind(cancelButton, CANCEL, {}, { failed: refused }),
-  exposure.element("agents.definition-dialog.login", loginButton),
-  exposure.element("agents.definition-dialog.account-id", accountIdField),
-  exposure.element("agents.definition-dialog.account-cli", accountCliField),
-  exposure.element("agents.definition-dialog.account-add", accountAddButton),
-  exposure.element("agents.definition-dialog.login-cancel", loginCancelButton),
-  exposure.element("agents.definition-dialog.login-page", loginPage),
-  exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value }), { failed: refused }),
-  exposure.bind(loginCancelButton, LOGIN_CANCEL, {}, { failed: refused }),
-  exposure.mark(accountIdField, ACCOUNT_DEFINE, null, "id"),
-  exposure.mark(accountCliField, ACCOUNT_DEFINE, null, "cli"),
-  exposure.bind(accountAddButton, ACCOUNT_DEFINE, () => ({ id: accountIdField.value.trim(), cli: accountCliField.value.trim(), args: [], env: [] }), { failed: refused }),
 ]);
-accountField.addEventListener("change", showLogin);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") exposure.run(CANCEL, {}).catch(refused);
 });
 
-// The accounts fill the account field. A stored definition fills every field from its record and its role in core.roles.
-try {
+// The region login shows the sign-in page of a login (core F1163: a dialog declares its regions).
+let signInRegion;
+
+// Reads the parameters, creates the composition, registers the commands, statuses and elements of the form and fills the fields.
+async function startForm() {
+  readParams();
+  const composition = await bridge.composition.create({ regions: { login: loginPage }, overlays: {} });
+  signInRegion = composition.region("login");
+  signInRegion.onState((state) => {
+    if (run === null) return;
+    run.page = { url: state.url, title: state.title, loading: state.loading, error: state.error };
+    showLogin();
+  });
+
+  await Promise.all([
+    exposure.command(save, saveDefinition), bridge.commands.register(save, saveDefinition),
+    exposure.status(LOGINS, () => ({ accounts: logins }), (watcher) => { loginWatchers.add(watcher); return () => loginWatchers.delete(watcher); }),
+    exposure.command(ACCOUNT_DEFINE, addAccount), bridge.commands.register(ACCOUNT_DEFINE, addAccount),
+    exposure.command(ACCOUNT_REMOVE, removeAccount), bridge.commands.register(ACCOUNT_REMOVE, removeAccount),
+    exposure.command(ACCOUNT_LOGIN, login), bridge.commands.register(ACCOUNT_LOGIN, login),
+    exposure.command(LOGIN_CANCEL, cancelLogin), bridge.commands.register(LOGIN_CANCEL, cancelLogin),
+    exposure.command(SIGN_IN, signIn), bridge.commands.register(SIGN_IN, signIn),
+    exposure.status(LOGIN_RUN, runValue, (watcher) => { runWatchers.add(watcher); return () => runWatchers.delete(watcher); }),
+  ]);
+  await Promise.all([
+    exposure.element("agents.definition-dialog.name", nameField),
+    exposure.element("agents.definition-dialog.account", accountField),
+    exposure.element("agents.definition-dialog.cwd", cwdField),
+    exposure.element("agents.definition-dialog.text", textField),
+    exposure.element("agents.definition-dialog.ko", koField),
+    exposure.element("agents.definition-dialog.files", filesField),
+    exposure.element("agents.definition-dialog.save", saveButton),
+    // Each field gives one parameter of the save command, which the save button runs.
+    ...[[nameField, "name"], [accountField, "account"], [cwdField, "cwd"], [textField, "text"], [koField, "ko"], [filesField, "files"]]
+      .map(([field, parameter]) => exposure.mark(field, save, null, parameter)),
+    exposure.bind(saveButton, save, () => definitionParams({
+      group, id, name: nameField.value, account: accountField.value, cwd: cwdField.value, text: textField.value, ko: koField.value, files: filesField.value,
+    }), { failed: refused }),
+    exposure.element("agents.definition-dialog.login", loginButton),
+    exposure.element("agents.definition-dialog.account-id", accountIdField),
+    exposure.element("agents.definition-dialog.account-cli", accountCliField),
+    exposure.element("agents.definition-dialog.account-add", accountAddButton),
+    exposure.element("agents.definition-dialog.login-cancel", loginCancelButton),
+    exposure.element("agents.definition-dialog.login-page", loginPage),
+    exposure.bind(loginButton, ACCOUNT_LOGIN, () => ({ id: accountField.value }), { failed: refused }),
+    exposure.bind(loginCancelButton, LOGIN_CANCEL, {}, { failed: refused }),
+    exposure.mark(accountIdField, ACCOUNT_DEFINE, null, "id"),
+    exposure.mark(accountCliField, ACCOUNT_DEFINE, null, "cli"),
+    exposure.bind(accountAddButton, ACCOUNT_DEFINE, () => ({ id: accountIdField.value.trim(), cli: accountCliField.value.trim(), args: [], env: [] }), { failed: refused }),
+  ]);
+  accountField.addEventListener("change", showLogin);
+
+  // The accounts fill the account field. A stored definition fills every field from its record and its role in core.roles.
   await showAccounts();
   if (editing) {
     const records = parseDefinitions((await bridge.runtime.data.get(DEFINITIONS)) ?? {});
@@ -241,6 +258,11 @@ try {
     koField.value = values.ko;
     filesField.value = values.files;
   }
+}
+
+// A start step that fails shows its refusal in the dialog, whose cancel button and Escape close it.
+try {
+  await startForm();
 } catch (error) {
   refused(error);
 }
