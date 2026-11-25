@@ -95,9 +95,9 @@ test("plugin.json declares the setting terminalPlugin, a string of at most 64 ch
   });
 });
 
-test("plugin.json declares the project data keys groups, definitions and accounts, whose defaults are empty", () => {
+test("plugin.json declares the project data keys groups of format 2, definitions and accounts, whose defaults are empty", () => {
   assert.deepEqual(manifest.data, {
-    groups: { schema: { type: "object" }, default: {} },
+    groups: { schema: { type: "object" }, default: {}, format: 2 },
     definitions: { schema: { type: "object" }, default: {} },
     accounts: {
       schema: {
@@ -204,6 +204,12 @@ test("plugin.json declares the commands agents.group.create, agents.definition.d
       params: { type: "object", properties: {} },
       result: { type: "null" },
     },
+    {
+      name: "agents.group.leader",
+      description: "Makes the member id the leader of the group, which receives a message without a mention in a room of the group. Idempotent; a group that is not stored and an identifier that the group does not hold are refused.",
+      params: { type: "object", properties: { group: { type: "string" }, id: { type: "string" } }, required: ["group", "id"] },
+      result: { type: "null" },
+    },
   ]);
 });
 
@@ -267,4 +273,10 @@ test("plugin.json declares the programs of the account homes, whose arguments st
   assert.ok(!full(manifest.programs["claude-status"].args[0], "CODEX_HOME=/c/plugin-data/agents/accounts/work"));
   assert.ok(full(manifest.programs["codex-status"].args[1], "/opt/bin/codex"));
   assert.ok(!full(manifest.programs["codex-status"].args[1], "codex login"));
+});
+
+// A54 (docs/spec/definitions.md#leader): the icon of a definition row is the control that moves the leader.
+test("plugin.json declares the icon of a definition row as the element agents.definitions.leader", () => {
+  const element = manifest.exposes.element.find((entry) => entry.name === "agents.definitions.leader");
+  assert.deepEqual(element, { name: "agents.definitions.leader", description: "The icon of a definition row of the definitions tree, the star on the row of the leader of its group; a press runs agents.group.leader with the group and the identifier of the row.", many: true });
 });

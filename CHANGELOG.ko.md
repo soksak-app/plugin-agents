@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A54: 각 group은 리더 하나를 format 2 group 기록의 `leader`로 가진다. 정의 행의 아이콘을 누르면 `agents.group.leader`가 실행되고, 리더의 행은 별을 보인다.
 - A53: version은 0.0.9이며 release run이 A52를 게시한다.
 - A52: 정의 섹션의 이름은 `혼`(souls)이고, definition dialog와 definitions page의 제목은 `혼`이다.
 - A51: version은 0.0.8이며 release run이 A50을 게시한다.

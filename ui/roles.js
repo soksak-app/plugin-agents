@@ -19,7 +19,8 @@ export function addMember(groups, group, id) {
     if (other !== group && value.members.includes(id)) throw new Error(`role ${id} is already in group ${other}`);
   }
   const members = groups[group].members.includes(id) ? groups[group].members : [...groups[group].members, id];
-  return { ...groups, [group]: { ...groups[group], members } };
+  // The first member that a group receives becomes its leader (docs/spec/definitions.md#leader).
+  return { ...groups, [group]: { ...groups[group], members, leader: groups[group].leader ?? id } };
 }
 
 // Returns a new groups object without the identifier in the members of the group. A group that the project does not define, or an
@@ -28,7 +29,19 @@ export function removeMember(groups, group, id) {
   parseGroups(groups);
   if (!Object.hasOwn(groups, group)) throw new Error(`group ${group} is not defined`);
   if (!groups[group].members.includes(id)) throw new Error(`role ${id} is not a member of group ${group}`);
-  return { ...groups, [group]: { ...groups[group], members: groups[group].members.filter((member) => member !== id) } };
+  const members = groups[group].members.filter((member) => member !== id);
+  // The removal of the leader makes the first remaining member the leader, and the removal of the last member leaves none.
+  const leader = groups[group].leader === id ? members[0] ?? null : groups[group].leader;
+  return { ...groups, [group]: { ...groups[group], members, leader } };
+}
+
+// Returns a new groups object in which the member id is the leader of the group; a call for the current leader returns an equal
+// object. A group that the project does not define, or an identifier that the group does not hold, is refused with the text of the rule.
+export function setLeader(groups, group, id) {
+  parseGroups(groups);
+  if (!Object.hasOwn(groups, group)) throw new Error(`group ${group} is not defined`);
+  if (!groups[group].members.includes(id)) throw new Error(`role ${id} is not a member of group ${group}`);
+  return { ...groups, [group]: { ...groups[group], leader: id } };
 }
 
 // The rows of the section: each group in the code point order of its identifier, with each member's definition from the value of
@@ -41,6 +54,7 @@ export function roleRows(groups, roles) {
   return Object.keys(groups).sort().map((id) => ({
     id,
     name: groups[id].name,
+    leader: groups[id].leader,
     members: groups[id].members.map((member) => {
       const role = byId.get(member);
       return role === undefined

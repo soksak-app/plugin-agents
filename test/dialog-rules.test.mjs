@@ -6,9 +6,9 @@ import { definitionFormValues, definitionParams, defaultGroupName } from "../ui/
 
 test("defaultGroupName is default while no group has the name default, and empty when one does", () => {
   assert.equal(defaultGroupName({}), "default");
-  assert.equal(defaultGroupName({ a: { name: "Alpha", members: [] } }), "default");
-  assert.equal(defaultGroupName({ a: { name: "default", members: [] } }), "");
-  assert.equal(defaultGroupName({ a: { name: "Default", members: [] } }), "default");
+  assert.equal(defaultGroupName({ a: { name: "Alpha", members: [], leader: null } }), "default");
+  assert.equal(defaultGroupName({ a: { name: "default", members: [], leader: null } }), "");
+  assert.equal(defaultGroupName({ a: { name: "Default", members: [], leader: null } }), "default");
 });
 
 test("defaultGroupName refuses a value that is not the groups data", () => {

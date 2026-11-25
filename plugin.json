@@ -52,7 +52,7 @@
     }
   },
   "data": {
-    "groups": { "schema": { "type": "object" }, "default": {} },
+    "groups": { "schema": { "type": "object" }, "default": {}, "format": 2 },
     "definitions": { "schema": { "type": "object" }, "default": {} },
     "accounts": {
       "schema": {
@@ -100,6 +100,7 @@
     "element": [
       { "name": "agents.running.row", "description": "One visible row of the running agents tree, as the tree library draws it: a group, a card or a running agent CLI.", "many": true },
       { "name": "agents.definitions.row", "description": "One visible row of the definitions tree, as the tree library draws it: a group or a definition.", "many": true },
+      { "name": "agents.definitions.leader", "description": "The icon of a definition row of the definitions tree, the star on the row of the leader of its group; a press runs agents.group.leader with the group and the identifier of the row.", "many": true },
       { "name": "agents.definitions.add-definition", "description": "The + at the right end of a group row of the definitions tree that opens the dialog that adds a definition to the group.", "many": true },
       { "name": "agents.group-dialog.name", "description": "The group name field of the group dialog; Enter adds the group." },
       { "name": "agents.group-dialog.add", "description": "The add button of the group dialog that runs agents.group.create with the name field." },
@@ -202,6 +203,12 @@
         "name": "agents.dialog.cancel",
         "description": "Closes the dialog of the calling page without a change.",
         "params": { "type": "object", "properties": {} },
+        "result": { "type": "null" }
+      },
+      {
+        "name": "agents.group.leader",
+        "description": "Makes the member id the leader of the group, which receives a message without a mention in a room of the group. Idempotent; a group that is not stored and an identifier that the group does not hold are refused.",
+        "params": { "type": "object", "properties": { "group": { "type": "string" }, "id": { "type": "string" } }, "required": ["group", "id"] },
         "result": { "type": "null" }
       }
     ]

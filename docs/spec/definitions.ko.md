@@ -2,12 +2,17 @@
 
 [English](definitions.md)
 
-Agents plugin은 project data key 두 개를 저장한다(`plugin.json`의 `data`, [project data](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#project-data)). 각 key는 format 1이며(생략 시 기본값), workbench가 쓰는 저장 형식은 `{format, value}`다.
+Agents plugin은 project data key 세 개를 workbench가 쓰는 저장 형식 `{format, value}`로 저장한다(`plugin.json`의 `data`, [project data](https://github.com/soksak-app/core/blob/main/docs/spec/plugins.md#project-data)). `accounts`와 `definitions`는 format 1이고(생략 시 기본값), `groups`는 format 2다.
 
 ## Key
 
 - `accounts`: 계정의 배열이며 기본값은 `[]`다. 각 계정은 `{id, cli, args, env, home}`다. `id`는 `^[a-z][a-z0-9-]{0,39}$`에 맞고 유일하다. `cli`는 에이전트 CLI의 program 이름이며, 공백이나 제어 문자 없이 1자 이상 255자 이하다. `args`는 text의 배열이고 인자 하나당 항목 하나다. `env`는 `^[A-Za-z_][A-Za-z0-9_]{0,127}$`에 맞는 환경 변수 이름의 유일한 배열이다. 변수 값은 저장하지 않는다. `home`은 `null` 또는 계정의 configuration home인 `{variable, folder}`다([계정 home](#계정-home)).
 - `definitions`: 기본값 `{}`인 객체이며, 정의 식별자에서 `{name, account, plugin, role, cwd}`로 가는 매핑이며, 선택 member `maker`와 `launch`를 가질 수 있다. `name`은 1자 이상 40자 이하다. `account`는 `accounts`의 계정 이름이다. `plugin`은 session을 실행하는 plugin이며, 정의할 때의 setting `terminalPlugin`(기본값 `terminal`) 값이다. `role`은 core role 식별자이며 정의 식별자와 같다. `cwd`는 절대 경로다. `maker`는 있을 때 이 정의를 저장한 목록의 maker group 식별자다([makers](makers.ko.md#목록)). 사람이 정의한 정의에는 `maker`가 없으며, 같은 식별자를 다시 정의해도 `maker`는 유지된다. `launch`는 `maker`가 있을 때만, 그리고 그때 반드시 있으며 `{args, env}`다. `args`는 text 배열이고 `env`는 `^[A-Za-z_][A-Za-z0-9_]{0,127}$`에 맞는 변수 이름에서 text로 가는 객체이며, 목록이 maker folder의 session에 주는 인자와 변수다([makers](makers.ko.md#목록)). 정의를 바꿔도 `launch`는 유지된다.
+- `groups`: 기본값 `{}`인 객체이며, group 식별자에서 `{name, members, leader}`로 가는 매핑이다. 식별자는 `^[a-z][a-z0-9-]{0,39}$`에 맞는다. `name`은 1자 이상 40자 이하이고 group 사이에서 유일하다. `members`는 정의 식별자의 배열이며 각 식별자는 많아야 한 group에 속한다. `leader`는 그 group의 member이고, `members`가 비어 있을 때만 `null`이다([leader](#leader)). format 1 형식 `{name, members}` 같은 다른 형식의 group은 group 식별자와 찾은 member를 밝혀 거부한다.
+
+## Leader
+
+각 group에는 그 group의 member인 leader가 정확히 하나 있다. group을 받은 방은 mention 없는 메시지를 leader에게 보내므로, leader는 방이 아니라 group에 속한다. group이 처음 받은 member가 leader가 된다. leader를 빼면 남은 첫 member가 leader가 되고, 마지막 member를 빼면 `leader`는 `null`이 된다. `agents.group.leader {group, id}`는 member `id`를 group `group`의 leader로 만든다. 이 command는 멱등하며, 저장되지 않은 group은 `group <group> is not defined`로, group이 갖지 않은 식별자는 `role <id> is not a member of group <group>`으로 거부한다.
 
 ## 목록이 만든 계정
 
@@ -50,6 +55,7 @@ Clubhouse room은 두 key를 `runtime.data.get {key, plugin: "agents"}`(core F10
 - 섹션은 아이콘 `plus`의 action `그룹 추가`를 선언하고, core는 그것을 섹션 머리 오른쪽 끝에 그린다. 이 action은 `agents.group.open`을 실행하며, 이 command는 대화상자 `group`을 연다. 그룹이 없는 동안 섹션은 맨 위에 `그룹이 없어요.`를 보인다.
 - 그룹 대화상자에는 이름 필드와 추가 버튼이 있다. 이름 필드는 저장된 그룹 중에 `default`라는 이름의 그룹이 없으면 `default`를, 있으면 빈 값을 보인다. 이름 필드의 Enter와 추가 버튼은 `agents.group.create {name}`을 실행한다. 그룹이 이미 가진 이름은 거부되며, 대화상자는 거부 문구를 보이고 아무것도 저장하지 않는다. 저장된 그룹이 추가되면 대화상자는 그룹의 식별자와 함께 닫힌다.
 - 그룹 행 오른쪽 끝의 `+`(element `agents.definitions.add-definition`)는 `agents.definition.open {group}`을 실행하며, 이 command는 식별자 없이 대화상자 `definition`을 열어 그룹에 정의를 추가하게 한다.
+- 정의 행의 아이콘(element `agents.definitions.leader`)은 로봇 이모지나 그 program의 아이콘을 보이고, 그 group leader의 행에서는 별 이모지(U+2B50)를 보인다. 아이콘을 누르면 그 행의 group과 식별자로 `agents.group.leader {group, id}`가 실행되고 행은 선택되지 않는다. 그래서 다른 member의 아이콘을 누르면 별이 그 행으로 옮겨 간다.
 - 정의 행을 더블클릭하면 `agents.definition.open {group, id}`가 실행되며, 대화상자 `definition`이 그 식별자로 열린다. 대화상자는 저장된 record와 `core.roles`에서 그 식별자의 role을 보인다. 보이는 값은 이름, 계정, 작업 폴더, role 텍스트, 한국어 role 텍스트, role 파일이다. 저장은 `agents.definition.change`를 실행하고 대화상자를 닫는다.
 - 대화상자 `definition`의 필드는 이름, 계정(저장된 계정의 select이며, 각 option은 식별자와, login이 `false`면 ` (로그인 필요)`를 보인다), 작업 폴더, role 텍스트, 한국어 role 텍스트, role 파일(한 줄에 절대 경로 하나)이다. 저장은 `agents.definition.define {group, id, name, account, cwd, text, ko, files}`을 실행하며, `id`는 대화상자가 열릴 때 만든 새 식별자다. command가 성공한 뒤에 저장이 대화상자를 닫는다.
 - 계정 select 아래에 대화상자는 버튼 로그인(element `agents.definition-dialog.login`)을 두며, 선택한 계정의 login이 `false`인 동안 켜진다. 이 버튼은 선택한 계정으로 `agents.account.login {id}`를 실행한다. 계정 줄 아래에 대화상자는 element `agents.definition-dialog.login-page`를 둔다. 이 element는 대화상자의 document region `login`을 담고, `agents.definition-dialog.sign-in {url}`이 sign-in 주소를 그 안에 load할 때까지 숨는다. 실행이 열린 동안 버튼 로그인 취소(element `agents.definition-dialog.login-cancel`)가 로그인 버튼 자리에 서서 `agents.account.login.cancel`을 실행하며, status `agents.definition-dialog.login-run`은 열린 실행의 `{id, url, page}`이다. 주소가 오기 전의 `url`은 `null`이고, `page`는 region의 마지막 상태 `{url, title, loading, error}`이며 region이 보고하기 전에는 `null`이다. 실행이 없으면 status는 `null`이다. sign-in page를 보이는 동안 대화상자는 제목, 계정 줄, region, 오류 줄만 보이고 region은 창의 높이를 채운다. 실행이 끝나면 region을 숨기고 계정의 login을 다시 읽는다. 새 계정 줄은 식별자 필드, cli 필드, 버튼 추가(element `agents.definition-dialog.account-id`, `agents.definition-dialog.account-cli`, `agents.definition-dialog.account-add`)를 가지며, 추가는 `agents.account.define {id, cli, args: [], env: []}`를 실행하고 새 계정을 고른다. 대화상자는 열릴 때와 계정을 더한 뒤 나열한 각 계정의 login을 읽고, status `agents.definition-dialog.accounts`, 곧 식별자 순서의 `{accounts: [{id, cli, login, expires}]}`로 게시한다.

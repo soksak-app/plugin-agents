@@ -144,7 +144,7 @@ export function listRecords({ group, folder, personHome, groups, definitions, ac
     }
   }
   // The group record: the group with its name, then each agent identifier added as a member unless the group holds it already.
-  let nextGroups = Object.hasOwn(groups, group.id) ? groups : { ...groups, [group.id]: { name: group.name, members: [] } };
+  let nextGroups = Object.hasOwn(groups, group.id) ? groups : { ...groups, [group.id]: { name: group.name, members: [], leader: null } };
   nextGroups = { ...nextGroups, [group.id]: { ...nextGroups[group.id], name: group.name } };
   for (const { id } of agents) nextGroups = addMember(nextGroups, group.id, id);
   // The roles: each agent with the absolute path of its file in the maker folder, which core.role.define takes.

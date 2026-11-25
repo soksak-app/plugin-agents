@@ -91,7 +91,7 @@ test("listRecords stores the account, each definition with its maker and launch,
       launch: { args: ["--plugin-dir", MAKER, "--add-dir", MAKER], env: { MOAI_HOME: `${HOME}/.moai`, MOAI_PLUGIN: MAKER } },
     },
   });
-  assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"] } });
+  assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"], leader: "moai-backend-expert" } });
   assert.deepEqual(stored.roles, [{
     id: "moai-backend-expert",
     text: `Follow the definition in ${MAKER}/.claude/agents/backend.md.`,
@@ -115,7 +115,7 @@ test("listRecords refuses an account identifier that another cli holds, naming t
 
 test("listRecords keeps the members the person added, a listing of an equal group changes nothing, and a new folder changes the launch", () => {
   const first = listRecords(listing());
-  const groups = { moai: { name: "MoAI", members: ["mine"] } };
+  const groups = { moai: { name: "MoAI", members: ["mine"], leader: "mine" } };
   const definitions = { mine: { name: "Mine", account: "claude", plugin: "terminal", role: "mine", cwd: "/work/project" } };
   const second = listRecords(listing({ groups, definitions, accounts: first.accounts }));
   assert.deepEqual(second.groups.moai.members, ["mine", "moai-backend-expert"]);
@@ -129,7 +129,7 @@ test("listRecords keeps the members the person added, a listing of an equal grou
 test("listRecords refuses an agent identifier that repeats within the group, and one that is a member of another group", () => {
   const twins = group({ agents: [{ name: "Backend Expert", path: ".claude/agents/a.md", cli: "claude" }, { name: "backend-expert", path: ".claude/agents/b.md", cli: "claude" }] });
   assert.throws(() => listRecords(listing({ group: twins })), /agent backend-expert repeats the identifier moai-backend-expert of the group/);
-  assert.throws(() => listRecords(listing({ groups: { other: { name: "Other", members: ["moai-backend-expert"] } } })), /role moai-backend-expert is already in group other/);
+  assert.throws(() => listRecords(listing({ groups: { other: { name: "Other", members: ["moai-backend-expert"], leader: "moai-backend-expert" } } })), /role moai-backend-expert is already in group other/);
 });
 
 // The provider reads its items by the local name of the point; core refuses any name that is not a key of extends (A24).

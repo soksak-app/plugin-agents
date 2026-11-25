@@ -22,7 +22,7 @@ const DATA = "/config/plugin-data/agents";
 
 test("listGroup stores the account, the definitions with their maker and launch and the group record, and plans the roles", () => {
   const stored = listGroup({ group: group(), stored: EMPTY, folder: "/config/plugins/moai/0.0.6", personHome: null, plugin: "terminal", root: "/work/project", dataFolder: DATA });
-  assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"] } });
+  assert.deepEqual(stored.groups, { moai: { name: "MoAI", members: ["moai-backend-expert"], leader: "moai-backend-expert" } });
   assert.deepEqual(stored.definitions, { "moai-backend-expert": { name: "Backend Expert", account: "claude", plugin: "terminal", role: "moai-backend-expert", cwd: "/work/project", maker: "moai", launch: { args: ["--plugin-dir", "/config/plugins/moai/0.0.6/plugin", "--add-dir", "/config/plugins/moai/0.0.6/plugin"], env: {} } } });
   assert.deepEqual(stored.roles.map((role) => role.files), [["/config/plugins/moai/0.0.6/plugin/.claude/agents/backend.md"]]);
   assert.deepEqual(stored.accounts, [{ id: "claude", cli: "claude", args: [], env: [], home: { variable: "CLAUDE_CONFIG_DIR", folder: `${DATA}/accounts/claude` } }]);
@@ -38,7 +38,7 @@ test("a second listing of an equal group stores equal values, and keeps a defini
   const first = listGroup({ group: group(), stored: EMPTY, folder: "/config/plugins/moai/0.0.6", personHome: null, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(storedChanges(first, listGroup({ group: group(), stored: first, folder: "/config/plugins/moai/0.0.6", personHome: null, plugin: "terminal", root: "/work/project", dataFolder: DATA })), []);
   const mine = { name: "Mine", account: "claude", plugin: "terminal", role: "mine", cwd: "/work/project" };
-  const stored = { groups: { moai: { name: "MoAI", members: ["mine"] } }, definitions: { mine }, accounts: [] };
+  const stored = { groups: { moai: { name: "MoAI", members: ["mine"], leader: "mine" } }, definitions: { mine }, accounts: [] };
   const again = listGroup({ group: group(), stored, folder: "/config/plugins/moai/0.0.6", personHome: null, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(again.groups.moai.members, ["mine", "moai-backend-expert"]);
   assert.deepEqual(again.definitions.mine, mine);
@@ -47,5 +47,5 @@ test("a second listing of an equal group stores equal values, and keeps a defini
 test("storedChanges names only the project keys whose stored value a listing changes, and an equal listing names none", () => {
   const first = listGroup({ group: group(), stored: EMPTY, folder: "/config/plugins/moai/0.0.6", personHome: null, plugin: "terminal", root: "/work/project", dataFolder: DATA });
   assert.deepEqual(storedChanges(EMPTY, first), ["groups", "definitions", "accounts"]);
-  assert.deepEqual(storedChanges(first, { ...first, groups: { moai: { name: "Renamed", members: ["moai-backend-expert"] } } }), ["groups"]);
+  assert.deepEqual(storedChanges(first, { ...first, groups: { moai: { name: "Renamed", members: ["moai-backend-expert"], leader: "moai-backend-expert" } } }), ["groups"]);
 });

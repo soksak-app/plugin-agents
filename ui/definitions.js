@@ -8,17 +8,18 @@ import { exposurePort } from "./exposure-port.js";
 import { parseGroups } from "./groups.js";
 import { parseAccounts } from "./accounts.js";
 import { parseDefinitions, removeDefinition } from "./definition-records.js";
-import { removeMember, roleRows } from "./roles.js";
+import { removeMember, roleRows, setLeader } from "./roles.js";
 import { changeDefinitionRecord, createGroupRecord, defineDefinitionRecord, terminalPlugin, createHome } from "./definition-commands.js";
 import { listGroup, storedChanges } from "./makers-import.js";
 import { MAKERS_POINT, parseMakerGroup } from "./makers.js";
-import { definitionMenu, definitionNodes } from "./tree-paths.js";
+import { definitionIcon, definitionMenu, definitionNodes } from "./tree-paths.js";
 import { createTreeView } from "./tree-view.js";
 
 const CREATE = "agents.group.create";
 const DEFINE = "agents.definition.define";
 const CHANGE = "agents.definition.change";
 const REMOVE = "agents.definition.remove";
+const LEADER = "agents.group.leader";
 const OPEN_GROUP = "agents.group.open";
 const OPEN_DEFINITION = "agents.definition.open";
 const KEY = "groups";
@@ -56,6 +57,9 @@ const treeView = () => tree ??= createTreeView(list, {
   rowOf: () => ({ name: "agents.definitions.row", command: null, params: null }),
   picked: () => {},
   detail: ({ member }) => (member.defined ? null : "정의되지 않음"),
+  // The star marks the leader of the group, and a press on the icon of a row makes its member the leader (docs/spec/definitions.md#leader).
+  icon: definitionIcon,
+  iconAction: ({ group, member }) => ({ name: "agents.definitions.leader", title: "리더로 정하기", command: LEADER, params: { group, id: member.id } }),
   // The + at the right end of a group row opens the dialog that adds a definition to the group; a double click on a definition row opens
   // the dialog of that definition.
   folderAction: ({ group }) => ({ name: "agents.definitions.add-definition", label: "+", title: "정의 추가", command: OPEN_DEFINITION, params: { group } }),
@@ -121,6 +125,14 @@ async function remove({ group, id }) {
   await bridge.calls.request("core.role.remove", { id });
   await bridge.runtime.data.change(DEFINITIONS, (value) => removeDefinition(value, id));
   await bridge.runtime.data.change(KEY, (value) => removeMember(value, group, id));
+  return null;
+}
+
+// The command agents.group.leader {group, id}: makes the member the leader of the group (docs/spec/definitions.md#leader). The rules
+// of setLeader refuse a group that is not stored and an identifier that the group does not hold before anything is stored.
+async function leader({ group, id }) {
+  setLeader(parseGroups((await bridge.runtime.data.get(KEY)) ?? {}), group, id);
+  await bridge.runtime.data.change(KEY, (value) => setLeader(value, group, id));
   return null;
 }
 
@@ -199,6 +211,7 @@ await Promise.all([
   exposure.command(DEFINE, define), bridge.commands.register(DEFINE, define),
   exposure.command(CHANGE, change), bridge.commands.register(CHANGE, change),
   exposure.command(REMOVE, remove), bridge.commands.register(REMOVE, remove),
+  exposure.command(LEADER, leader), bridge.commands.register(LEADER, leader),
   exposure.command(OPEN_GROUP, openGroup), bridge.commands.register(OPEN_GROUP, openGroup),
   exposure.command(OPEN_DEFINITION, openDefinition), bridge.commands.register(OPEN_DEFINITION, openDefinition),
 ]);

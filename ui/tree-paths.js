@@ -62,9 +62,17 @@ export function definitionNodes(rows, records = {}) {
     value: { group: row.id },
     children: row.members.map((member) => ({
       label: Object.hasOwn(records, member.id) ? records[member.id].name : member.id,
-      value: { group: row.id, member },
+      value: { group: row.id, member, leader: row.leader === member.id },
     })),
   }));
+}
+
+/**
+ * The icon of a definition row of definitionNodes: "leader", the star, for the leader of its group, and null for another row, which keeps
+ * the icon of the tree (docs/spec/definitions.md#leader).
+ */
+export function definitionIcon({ leader }) {
+  return leader ? "leader" : null;
 }
 
 /** The menu entries of a definition row of definitionNodes: the removal of the definition. */

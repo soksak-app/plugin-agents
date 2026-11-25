@@ -31,16 +31,16 @@ test("treePaths keeps the value of each valued folder in folders, and a folder w
 });
 
 test("treePaths lists each definition group with its members by their identifiers", () => {
-  const rows = [{ id: "moai", name: "MoAI", members: [{ id: "moai-backend", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
+  const rows = [{ id: "moai", name: "MoAI", leader: "moai-backend", members: [{ id: "moai-backend", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
   const { paths, items } = treePaths(definitionNodes(rows));
   assert.deepEqual(paths, ["MoAI/", "MoAI/moai-backend", "MoAI/moai-lead"]);
-  assert.deepEqual(items.get("MoAI/moai-lead"), { group: "moai", member: rows[0].members[1] });
+  assert.deepEqual(items.get("MoAI/moai-lead"), { group: "moai", member: rows[0].members[1], leader: false });
 });
 
 // A28: the dialog makes the identifier of a new definition, so a member with a stored definition is drawn by the name of the definition;
 // a member without a record keeps its identifier.
 test("definitionNodes labels a member by the name of its stored definition, and by its identifier without one", () => {
-  const rows = [{ id: "g1", name: "default", members: [{ id: "dmwun5e0", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
+  const rows = [{ id: "g1", name: "default", leader: "dmwun5e0", members: [{ id: "dmwun5e0", defined: true, text: "x" }, { id: "moai-lead", defined: false }] }];
   const records = { dmwun5e0: { name: "tester", account: "claude", plugin: "terminal", role: "dmwun5e0", cwd: "/p" } };
   assert.deepEqual(treePaths(definitionNodes(rows, records)).paths, ["default/", "default/tester", "default/moai-lead"]);
 });

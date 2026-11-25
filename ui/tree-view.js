@@ -21,8 +21,10 @@ const SCROLLBAR = `
 // A row of an agent or a definition is a file of the library. Its icon slot shows the robot emoji (U+1F916) of the system emoji font
 // in place of the file icon, and a row of a known agent CLI shows the icon of its program from @lobehub/icons-static-svg (A32).
 const AGENT_ICON = "soksak-agent";
+// The row of the leader of a group shows the star emoji (U+2B50) in place of its icon (docs/spec/definitions.md#leader).
 const SPRITES = `<svg xmlns="http://www.w3.org/2000/svg"><symbol id="${AGENT_ICON}" viewBox="0 0 24 24"><text x="12" y="20"
- font-size="22" text-anchor="middle">\u{1F916}</text></symbol>${Object.values(AGENT_ICON_SYMBOLS).join("")}</svg>`;
+ font-size="22" text-anchor="middle">\u{1F916}</text></symbol><symbol id="${AGENT_ICON}-leader" viewBox="0 0 24 24"><text x="12" y="20"
+ font-size="22" text-anchor="middle">\u{2B50}</text></symbol>${Object.values(AGENT_ICON_SYMBOLS).join("")}</svg>`;
 
 // The menu of a right click has the look of the core picker (core packages/workbench/app.css .picker): the card background, the
 // theme border, a shadow, and one line per entry in the 12px text, with the inset color under the pointer. The library places the
@@ -65,12 +67,13 @@ function themeStyles() {
  * a row, or null for none. menu(value) lists the {label, command, params} entries of the menu that a right click on a row opens, or
  * is empty for no menu. rowOf may give a null command for a row that a press does not run. icon(value) is the program of the icon of a
  * row, a key of AGENT_ICON_SYMBOLS, or null for the robot icon. failed reports an error of a press.
+ * iconAction(value) is the {name, title, command, params} of a press on the icon of a row, or null for an icon that a press does not run.
  * folderAction(value) is the {name, label, title, command, params} of the control at the right end of a folder that carries a value: the
  * label is its text, its element name marks it, and a press runs the command; null for no control. activate is null or {command,
  * params(value)}: a double click on a row runs the command through the binder with the params of the row value, and a row whose params
  * are null runs nothing. Both read the values that treePaths keeps.
  */
-export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], icon = () => null, folderAction = () => null, activate = null, failed }) {
+export function createTreeView(holder, { exposure, rowOf, picked, detail, menu = () => [], icon = () => null, iconAction = () => null, folderAction = () => null, activate = null, failed }) {
   let items = new Map();
   let folders = new Map();
   let syncing = false;
@@ -137,6 +140,13 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
     const path = control.closest("[data-item-path]")?.dataset.itemPath;
     return folders.has(path) ? folderAction(folders.get(path)) : null;
   };
+  // The icon of a row runs iconAction as the control of a folder runs folderAction: bound once with stop, so the press does not select the
+  // row, and read at the press for the current row of the reused element.
+  const boundIcons = new WeakSet();
+  const iconOf = (element) => {
+    const path = element.closest("[data-item-path]")?.dataset.itemPath;
+    return items.has(path) ? iconAction(items.get(path)) : null;
+  };
   const markRows = () => {
     for (const row of root.querySelectorAll("[data-item-path]")) {
       const path = row.dataset.itemPath;
@@ -171,6 +181,23 @@ export function createTreeView(holder, { exposure, rowOf, picked, detail, menu =
       const program = icon(items.get(path));
       const use = row.querySelector("[data-item-section='icon'] use");
       if (use) use.setAttribute("href", `#${program === null ? AGENT_ICON : `${AGENT_ICON}-${program}`}`);
+      const slot = row.querySelector("[data-item-section='icon']");
+      const action = iconAction(items.get(path));
+      if (slot) {
+        delete slot.dataset.expose;
+        slot.removeAttribute("role");
+        slot.removeAttribute("aria-label");
+      }
+      if (slot && action !== null) {
+        slot.dataset.expose = action.name;
+        slot.setAttribute("role", "button");
+        slot.setAttribute("aria-label", action.title);
+        if (boundIcons.has(slot)) exposure.mark(slot, action.command, action.params).catch(failed);
+        else {
+          boundIcons.add(slot);
+          exposure.bind(slot, action.command, () => iconOf(slot).params, { stop: true, when: () => iconOf(slot) !== null, failed }).catch(failed);
+        }
+      }
     }
   };
   exposure.delegate(root).catch(failed);

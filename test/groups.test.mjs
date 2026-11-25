@@ -5,10 +5,10 @@ import test from "node:test";
 import { createGroup, groupRows, parseGroups } from "../ui/groups.js";
 
 test("createGroup adds an empty group with its trimmed name and keeps the input unchanged", () => {
-  const before = { alpha: { name: "Alpha", members: [] } };
+  const before = { alpha: { name: "Alpha", members: [], leader: null } };
   const after = createGroup(before, { id: "beta", name: "  Beta  " });
-  assert.deepEqual(after, { alpha: { name: "Alpha", members: [] }, beta: { name: "Beta", members: [] } });
-  assert.deepEqual(before, { alpha: { name: "Alpha", members: [] } });
+  assert.deepEqual(after, { alpha: { name: "Alpha", members: [], leader: null }, beta: { name: "Beta", members: [], leader: null } });
+  assert.deepEqual(before, { alpha: { name: "Alpha", members: [], leader: null } });
 });
 
 test("createGroup refuses an empty name and a name of more than 40 characters, with the text of the rule", () => {
@@ -18,17 +18,17 @@ test("createGroup refuses an empty name and a name of more than 40 characters, w
 });
 
 test("createGroup refuses a repeated identifier and an identifier outside the form of an identifier", () => {
-  assert.throws(() => createGroup({ a: { name: "A", members: [] } }, { id: "a", name: "B" }), /group a already exists/);
+  assert.throws(() => createGroup({ a: { name: "A", members: [], leader: null } }, { id: "a", name: "B" }), /group a already exists/);
   assert.throws(() => createGroup({}, { id: "Bad Id", name: "B" }), /group identifier Bad Id must match/);
 });
 
 // A28: a name that a group already has is refused, after the trim, so the group dialog shows the refusal and stores nothing.
 test("createGroup refuses a name that a group already has, compared after the trim, and keeps the input unchanged", () => {
-  const before = { alpha: { name: "Alpha", members: [] } };
+  const before = { alpha: { name: "Alpha", members: [], leader: null } };
   assert.throws(() => createGroup(before, { id: "beta", name: "  Alpha  " }), /group name Alpha is already used by a group/);
   assert.throws(() => createGroup(before, { id: "beta", name: "Alpha" }), /group name Alpha is already used by a group/);
-  assert.deepEqual(before, { alpha: { name: "Alpha", members: [] } });
-  assert.deepEqual(createGroup(before, { id: "beta", name: "alpha" }).beta, { name: "alpha", members: [] });
+  assert.deepEqual(before, { alpha: { name: "Alpha", members: [], leader: null } });
+  assert.deepEqual(createGroup(before, { id: "beta", name: "alpha" }).beta, { name: "alpha", members: [], leader: null });
 });
 
 test("parseGroups accepts an empty object and refuses a list or a group without a name or members", () => {
@@ -39,7 +39,7 @@ test("parseGroups accepts an empty object and refuses a list or a group without 
 });
 
 test("groupRows lists each group in the code point order of its identifier", () => {
-  const groups = { beta: { name: "B", members: [] }, alpha: { name: "A", members: ["x"] } };
+  const groups = { beta: { name: "B", members: [], leader: null }, alpha: { name: "A", members: ["x"], leader: "x" } };
   assert.deepEqual(groupRows(groups), [
     { id: "alpha", name: "A", count: 1 },
     { id: "beta", name: "B", count: 0 },
