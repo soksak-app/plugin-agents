@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A26-2: 계정과 그 login은 plugin의 settings view에서 기술되고, 정의 대화상자는 더 이상 login을 실행하거나 계정을 추가하지 않는다.
 - A55-1: version은 0.0.10이며 A54와 A56을 release한다.
 - A56: `agents.definition.define`, `agents.definition.change`, `agents.group.create`는 호출자에게 답하고, 대화상자는 `agents.definition.save`와 `agents.group.add`로 닫힌다.
 - A54: 각 group은 리더 하나를 format 2 group 기록의 `leader`로 가진다. 정의 행의 아이콘을 누르면 `agents.group.leader`가 실행되고, 리더의 행은 별을 보인다.
