@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A59-1: The version is 0.0.12, which releases A58.
 - A58: The settings view registers the element `agents.settings.login-cancel` once with a function that returns the current button, so a login no longer shows the refusal `element agents.settings.login-cancel is already registered` when its rows are drawn again.
 - A57-1: The version is 0.0.11, which releases A26.
 - A26-3: The settings view `ui/settings.html` lists the accounts with their login, runs the login with the sign-in page in its region `login` and adds an account; the definition dialog runs no login and adds no account, and the plugin requires core 0.0.59.

@@ -2,7 +2,9 @@
 
 항목 상태는 `[ ]` 대기, `[~]` 진행, `[o]` 완료, `[!]` 보류, `[-]` 종료다.
 - [o] A58 — P0, A26에 이어서: settings view의 로그인 취소 버튼은 한 번만 등록된다. Input: settings view에서 계정 로그인을 시작하면 sign-in 주소와 page 상태가 올 때마다 행을 다시 그린다. Behavior: 행을 그릴 때마다 새 버튼을 `exposure.element`로 `agents.settings.login-cancel` 이름에 등록하고, exposure는 첫 번째 뒤의 등록을 거절해서 view가 sign-in page 아래에 `element agents.settings.login-cancel is already registered`를 보인다. Expected: view는 현재 버튼을 돌려주는 함수로 element를 한 번 등록하고, 각 그리기는 자기 버튼에 이름만 표시한다. Result: `a second drawing of the button 로그인 취소 during one login is not refused`는 이전 등록에서 실패했고(거절 `element agents.settings.login-cancel is already registered`) 지금 통과한다. plugin test 140개가 통과한다. mygo application의 view에서 로그인을 시작해도 sign-in page 아래에 거절이 보이지 않고, element agents.settings.login-cancel은 행의 버튼을 가리킨다.
-- [ ] A59 — P0, A58에 이어서: A58을 0.0.12로 릴리즈한다. package가 0.0.12를 선언하고, release 실행이 soksak-plugin-agents-0.0.12.tgz를 게시한다.
+- [~] A59 — P0, A58에 이어서: A58을 0.0.12로 릴리즈한다. Remains: push와 release 실행.
+  - [o] A59-1 — 버전 0.0.12를 선언해서 release 실행이 A58을 게시한다.
+  - [ ] A59-2 — 후보를 push하고 release 실행이 success로 끝나는지 확인한다.
 - [o] A57 — P0, A26에 이어서: A26과 함께 plugin을 0.0.11로 릴리즈한다.
   - [o] A57-1 — 버전 0.0.11을 선언해서 release 실행이 A26을 게시한다.
   - [o] A57-2 — 후보를 push하고 release 실행이 success로 끝나는지 확인한다. Green: release 실행이 success로 끝났고 v0.0.11은 soksak-plugin-agents-0.0.11.tgz를 나열한다.

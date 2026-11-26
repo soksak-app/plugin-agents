@@ -2,6 +2,7 @@
 
 [English](CHANGELOG.md)
 
+- A59-1: 버전은 0.0.12이고, A58을 릴리즈한다.
 - A58: settings view는 element `agents.settings.login-cancel`을 현재 버튼을 돌려주는 함수로 한 번 등록한다. 그래서 로그인 중에 행을 다시 그려도 거절 `element agents.settings.login-cancel is already registered`가 보이지 않는다.
 - A57-1: 버전은 0.0.11이고, A26을 릴리즈한다.
 - A26-3: 설정 view `ui/settings.html`이 계정을 login과 함께 나열하고, region `login`에 sign-in page를 보여 주며 login을 실행하고, 계정을 추가한다. 정의 대화상자는 login을 실행하지 않고 계정을 추가하지 않으며, plugin은 core 0.0.59를 요구한다.
