@@ -1,6 +1,8 @@
 # Features
 
 Items use the states `[ ]` waiting, `[~]` active, `[o]` complete, `[!]` held and `[-]` closed.
+- [o] A58 — P0, follows A26: The button 로그인 취소 of the settings view is registered once. Input: a login of an account in the settings view, whose rows are drawn again when the sign-in address and the page state arrive. Behavior: each drawing of the rows registers the new button with `exposure.element` under the name `agents.settings.login-cancel`, which the exposure refuses after the first, so the view shows `element agents.settings.login-cancel is already registered` below the sign-in page. Expected: the view registers the element once with a function that returns the current button, and each drawing only marks its button with the name. Result: `a second drawing of the button 로그인 취소 during one login is not refused` failed with the earlier registration (the refusal `element agents.settings.login-cancel is already registered`) and passes; the 140 plugin tests pass. With the view in a mygo application, a login shows no refusal below the sign-in page and the element agents.settings.login-cancel resolves to the button of the row.
+- [ ] A59 — P0, follows A58: Release A58 as 0.0.12. The package declares 0.0.12, and the release run publishes soksak-plugin-agents-0.0.12.tgz.
 - [o] A57 — P0, follows A26: Release the plugin with A26 as 0.0.11.
   - [o] A57-1 — Declare the version 0.0.11, so the release run publishes A26.
   - [o] A57-2 — Push the candidate and confirm that the release run concludes success. Green: the release run concluded success and v0.0.11 lists soksak-plugin-agents-0.0.11.tgz.

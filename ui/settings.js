@@ -4,6 +4,7 @@
 import { createExpose } from "@soksak/plugin-api";
 import { createViewBridge } from "@soksak/plugin-api/view";
 import { exposurePort } from "./exposure-port.js";
+import { loginCancelButton, registerLoginCancel } from "./login-cancel.js";
 import { parseAccounts } from "./accounts.js";
 import { accountLogins, defineAccountRecord, loginAccount, removeAccountRecord } from "./definition-commands.js";
 
@@ -75,9 +76,8 @@ function drawRows() {
     const state = Object.assign(document.createElement("span"), { className: "login", textContent: loginText(row) });
     item.append(id, cli, state);
     if (run !== null && run.id === row.id) {
-      const cancel = Object.assign(document.createElement("button"), { type: "button", textContent: "로그인 취소" });
+      const cancel = loginCancelButton(document);
       item.append(cancel);
-      exposure.element("agents.settings.login-cancel", cancel).catch(refused);
       exposure.bind(cancel, LOGIN_CANCEL, {}, { failed: refused }).catch(refused);
     } else if (row.login === false) {
       const login = Object.assign(document.createElement("button"), { type: "button", textContent: "로그인", disabled: run !== null });
@@ -176,6 +176,7 @@ async function startView() {
     exposure.command(SIGN_IN, signIn), bridge.commands.register(SIGN_IN, signIn),
   ]);
   await Promise.all([
+    registerLoginCancel(exposure, list),
     exposure.element("agents.settings.login-page", loginPage),
     exposure.element("agents.settings.account-id", accountIdField),
     exposure.element("agents.settings.account-cli", accountCliField),
