@@ -257,8 +257,9 @@ test("plugin.json declares the extension point agents.makers in extends with its
 });
 
 test("package.json declares the core range of the plugin and the files of its release", () => {
-  // Core 0.0.59 reads the settings view of a plugin (core F1128), in which the plugin shows the accounts and their sign-in page.
-  assert.deepEqual(pkg.engines, { soksak: "^0.0.59" });
+  // Core 0.0.61 sizes the seat of a settings view by the content height that the view reports (core F1213), which the settings view of
+  // the plugin reports through followSeatHeight (A61).
+  assert.deepEqual(pkg.engines, { soksak: "^0.0.61" });
   assert.deepEqual(pkg.files, ["plugin.json", "ui", "bin"]);
   // The pack keeps the executable mode only of the files that bin names, and the host runs each program file as an executable.
   assert.deepEqual(pkg.bin, { "sok-agents-login": "bin/login.mjs", "sok-agents-login-page": "bin/login-page.mjs", "sok-agents-home-settings": "bin/home-settings.mjs" });

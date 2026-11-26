@@ -18,8 +18,8 @@ importers:
         specifier: https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz
         version: https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz
       '@soksak/plugin-api':
-        specifier: git+https://github.com/soksak-app/core.git#d4965171b2aa40233ba0de15555be2dada33e505&path:/packages/plugin-api
-        version: https://codeload.github.com/soksak-app/core/tar.gz/d4965171b2aa40233ba0de15555be2dada33e505#path:/packages/plugin-api
+        specifier: git+https://github.com/soksak-app/core.git#9283f34dd1e6d9ee1ac007fc4f1216cd62485894&path:/packages/plugin-api
+        version: https://codeload.github.com/soksak-app/core/tar.gz/9283f34dd1e6d9ee1ac007fc4f1216cd62485894#path:/packages/plugin-api
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
@@ -196,9 +196,9 @@ packages:
     version: 0.0.14
     hasBin: true
 
-  '@soksak/plugin-api@https://codeload.github.com/soksak-app/core/tar.gz/d4965171b2aa40233ba0de15555be2dada33e505#path:/packages/plugin-api':
-    resolution: {gitHosted: true, integrity: sha512-BfiVrm9/08/jgeqjWrEXGVvK6nJ6HB9ARFfub7eza4dypEC92dyrWrudCajJqBYIx1U13YhXUlQ8Q8zh1qQUYw==, path: /packages/plugin-api, tarball: https://codeload.github.com/soksak-app/core/tar.gz/d4965171b2aa40233ba0de15555be2dada33e505}
-    version: 0.0.47
+  '@soksak/plugin-api@https://codeload.github.com/soksak-app/core/tar.gz/9283f34dd1e6d9ee1ac007fc4f1216cd62485894#path:/packages/plugin-api':
+    resolution: {gitHosted: true, integrity: sha512-8o+oxG8FEIFsjDH5yYCFkUTobV9RInTfCjG8OqGzA6ikGKQHSPk92Js6wlZQkRNLk0eeUvD9pcG/t10K34KgLg==, path: /packages/plugin-api, tarball: https://codeload.github.com/soksak-app/core/tar.gz/9283f34dd1e6d9ee1ac007fc4f1216cd62485894}
+    version: 0.0.61
     peerDependencies:
       jsdom: ^30.0.1
     peerDependenciesMeta:
@@ -347,7 +347,7 @@ snapshots:
       ajv: 8.20.0
       smol-toml: 1.9.1
 
-  '@soksak/plugin-api@https://codeload.github.com/soksak-app/core/tar.gz/d4965171b2aa40233ba0de15555be2dada33e505#path:/packages/plugin-api':
+  '@soksak/plugin-api@https://codeload.github.com/soksak-app/core/tar.gz/9283f34dd1e6d9ee1ac007fc4f1216cd62485894#path:/packages/plugin-api':
     dependencies:
       es-module-lexer: 3.0.5
 

@@ -26,6 +26,8 @@ const bridge = createViewBridge({
   report: (event) => { if (event.kind !== "open-calls") reportError("view calls", JSON.stringify(event)); },
 });
 reportError = (where, text) => bridge.runtime.error(where, text);
+// The seat of the settings view takes the content height of this page (core docs/spec/plugins.md#settings-views).
+bridge.followSeatHeight();
 for (const [where, text] of losses.splice(0)) reportError(where, text);
 
 const start = window.sokSurface;

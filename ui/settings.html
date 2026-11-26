@@ -7,9 +7,8 @@
   <style>
     /* The view bridge sets the theme of the window on the root: --card, --fg, --muted, --edge and --fail, with its color scheme. */
     :root { --text: var(--fg); --line: var(--edge); --error: var(--fail); }
-    html, body { height: 100%; }
     body { margin: 0; background: transparent; color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
-    main { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; overflow-y: auto; }
+    main { box-sizing: border-box; display: flex; flex-direction: column; }
     h1 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
     .none { margin: 0 0 10px; color: var(--muted); }
     .accounts { margin: 0 0 12px; padding: 0; list-style: none; }
@@ -22,7 +21,7 @@
     button { flex: none; padding: 4px 12px; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
     button:disabled { opacity: 0.5; cursor: default; }
     p { margin: 0 0 8px; min-height: 1.4em; color: var(--error); }
-    #login-page { flex: 1 1 auto; min-height: 240px; margin: 0 0 10px; border: 1px solid var(--line); border-radius: 4px; }
+    #login-page { flex: none; height: 480px; margin: 0 0 10px; border: 1px solid var(--line); border-radius: 4px; }
     [hidden] { display: none !important; }
   </style>
 </head>

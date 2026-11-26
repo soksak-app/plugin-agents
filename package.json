@@ -11,7 +11,7 @@
     "url": "git+https://github.com/soksak-app/plugin-agents.git"
   },
   "engines": {
-    "soksak": "^0.0.59"
+    "soksak": "^0.0.61"
   },
   "bin": {
     "sok-agents-login": "bin/login.mjs",
@@ -31,7 +31,7 @@
     "@lobehub/icons-static-svg": "1.105.0",
     "@pierre/trees": "1.0.0-beta.4",
     "@soksak/kit": "https://github.com/soksak-app/kit/releases/download/v0.0.14/soksak-kit-0.0.14.tgz",
-    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#d4965171b2aa40233ba0de15555be2dada33e505&path:/packages/plugin-api",
+    "@soksak/plugin-api": "git+https://github.com/soksak-app/core.git#9283f34dd1e6d9ee1ac007fc4f1216cd62485894&path:/packages/plugin-api",
     "esbuild": "0.28.2"
   }
 }

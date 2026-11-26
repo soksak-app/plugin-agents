@@ -2,6 +2,7 @@
 
 [한국어](CHANGELOG.ko.md)
 
+- A61: The settings view sizes its root element by its content and reports its content height through `followSeatHeight()`, so the seat of the plugin page ends where the accounts end; the region `login` is 480 pixels high while it shows, and the plugin requires core 0.0.61.
 - A59-1: The version is 0.0.12, which releases A58.
 - A58: The settings view registers the element `agents.settings.login-cancel` once with a function that returns the current button, so a login no longer shows the refusal `element agents.settings.login-cancel is already registered` when its rows are drawn again.
 - A57-1: The version is 0.0.11, which releases A26.

@@ -22,3 +22,17 @@ test("the definition dialog runs no login and adds no account", { timeout: 1000 
   }
   assert.doesNotMatch(page("definition-dialog.html"), /id="login|id="account-(id|cli|add)"/);
 });
+
+// The seat of the settings view takes the content height that the view reports (core docs/spec/plugins.md#settings-views, A61): the view
+// calls followSeatHeight, and no rule of the page ties the height of its root element to the height of the view.
+test("the settings view reports its content height and sizes its root by its content", { timeout: 1000 }, () => {
+  assert.match(page("settings.js"), /bridge\.followSeatHeight\(\);/, "the settings view does not report its content height");
+  const styles = page("settings.html").match(/<style>([\s\S]*?)<\/style>/)[1];
+  for (const rule of styles.split("}")) {
+    const [selector, body = ""] = rule.split("{");
+    if (/\b(html|body|main)\b/.test(selector)) {
+      assert.doesNotMatch(body, /height:\s*100%|\b100vh\b|overflow-y:\s*auto/, `the rule ${selector.trim()} ties the root to the height of the view`);
+    }
+  }
+  assert.match(styles, /#login-page \{[^}]*\bheight: \d+px/, "the region login has no fixed height");
+});
